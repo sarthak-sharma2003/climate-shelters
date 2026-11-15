@@ -6,6 +6,8 @@
 <title>Find a warm place (student prototype)</title>
 <!-- A student prototype on a public link: keep it out of search results. -->
 <meta name="robots" content="noindex, nofollow">
+<!-- Light only, like strathcona.ca. -->
+<meta name="color-scheme" content="light">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
   /* Colours, type and button shapes follow strathcona.ca (read from the live site on 2026-11-15):
@@ -16,12 +18,6 @@
     --teal: #007797; --teal-dark: #044D66; --on-teal: #FFFFFF; --link: #007797;
     --open: #559821; --open-text: #3F7A12; --pin-line: #231F20; --alert: #E97B23; --alert-soft: rgba(233, 123, 35, .34);
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --page: #1D2125; --band: #262B30; --ink: #E9ECEF; --head: #F1F1F1; --slate: #B4BAC0; --rule: #3B4249;
-      --link: #5CC8E4; --open: #7CC243; --open-text: #8FD45A; --pin-line: #0E1113; --alert-soft: rgba(233, 123, 35, .6);
-    }
-  }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--page); color: var(--ink); font: 1rem/1.6 "Liberation Sans", FreeSans, Helvetica, Arial, sans-serif; }
@@ -30,7 +26,6 @@
   a { color: var(--link); text-underline-offset: .15em; }
   button, select, input { font: inherit; color: inherit; }
   :focus-visible { outline: 3px solid var(--teal-dark); outline-offset: 2px; }
-  @media (prefers-color-scheme: dark) { :focus-visible { outline-color: #FFFFFF; } }
 
   /* ---- Layout: one column on a phone (head, map, list). Two on a wide screen, with the map pinned. ---- */
   .app { display: grid; grid-template-columns: minmax(0, 1fr); }
@@ -85,7 +80,6 @@
   .sign-line { margin-top: .4rem; line-height: 1.45; }
   .sign-acts { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .85rem; }
   .head .sign :focus-visible { outline-color: var(--teal-dark); }
-  @media (prefers-color-scheme: dark) { .head .sign :focus-visible { outline-color: #FFFFFF; } }
 
   /* ---- View switch ---- */
   .views { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--link); border-radius: 4px; overflow: hidden; }
@@ -148,7 +142,7 @@
   .here { background: var(--alert); border: 3px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 0 2px var(--alert), 0 1px 4px rgba(0, 0, 0, .5); }
 
   .leaflet-container { font: inherit; background: var(--band); }
-  /* Quiet the base map so the pins carry the page. In dark mode it is flipped to a night map. */
+  /* Quiet the base map so the pins carry the page. */
   .leaflet-tile-pane { filter: saturate(.45) contrast(.92) brightness(1.04); }
   .leaflet-popup-content-wrapper { border-radius: 4px; background: var(--page); color: var(--ink); }
   .leaflet-popup-tip { background: var(--page); }
@@ -156,11 +150,6 @@
   .leaflet-popup-content strong { display: block; color: var(--head); font-size: 1.0625rem; line-height: 1.3; }
   .leaflet-container a { color: var(--link); }
   .leaflet-container a.leaflet-popup-close-button { color: var(--slate); }
-  @media (prefers-color-scheme: dark) {
-    .leaflet-tile-pane { filter: grayscale(.85) invert(1) hue-rotate(185deg) brightness(.9) contrast(.82) sepia(.18) hue-rotate(160deg); }
-    .leaflet-control-attribution { background: rgba(29, 33, 37, .85) !important; color: #B4BAC0; }
-    .leaflet-bar a { background: #262B30; color: #E9ECEF; border-color: #3B4249; }
-  }
 
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
 
