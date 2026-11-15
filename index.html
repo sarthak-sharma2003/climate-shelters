@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find a warm place (student prototype)</title>
+<!-- A student prototype on a public link: keep it out of search results. -->
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  /* Colours, type and button shapes follow strathcona.ca (read from the live site on 2026-11-15):
+     teal #007797, logo green #559821, grey band #F5F4F2, Helvetica/Arial, 4px corners.
+     The county logo is deliberately not used: this is a student prototype, not a county page. */
+  :root {
+    --page: #FFFFFF; --band: #F5F4F2; --ink: #212529; --head: #333333; --slate: #606060; --rule: #DCDCDC;
+    --teal: #007797; --teal-dark: #044D66; --on-teal: #FFFFFF; --link: #007797;
+    --open: #559821; --open-text: #3F7A12; --pin-line: #231F20; --alert: #E97B23; --alert-soft: rgba(233, 123, 35, .34);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #1D2125; --band: #262B30; --ink: #E9ECEF; --head: #F1F1F1; --slate: #B4BAC0; --rule: #3B4249;
+      --link: #5CC8E4; --open: #7CC243; --open-text: #8FD45A; --pin-line: #0E1113; --alert-soft: rgba(233, 123, 35, .6);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 1rem/1.6 "Liberation Sans", FreeSans, Helvetica, Arial, sans-serif; }
+  h1, h2, h3, p, ul { margin: 0; }
+  ul { list-style: none; padding: 0; }
+  a { color: var(--link); text-underline-offset: .15em; }
+  button, select, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--teal-dark); outline-offset: 2px; }
+  @media (prefers-color-scheme: dark) { :focus-visible { outline-color: #FFFFFF; } }
+
+  /* ---- Layout: one column on a phone (head, map, list). Two on a wide screen, with the map pinned. ---- */
+  .app { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .head { --pad: 1.1rem; background: var(--teal); color: var(--on-teal); padding: 0 var(--pad) 1.25rem; }
+  .map { height: 46vh; min-height: 17rem; background: var(--band); isolation: isolate; border-bottom: 1px solid var(--rule); }
+  .list { padding: 1.1rem 1.1rem 0; min-width: 0; }
+  @media (min-width: 60rem) {
+    .app { grid-template-columns: minmax(23rem, 29rem) minmax(0, 1fr); }
+    .head { --pad: 1.6rem; grid-column: 1; grid-row: 1; padding-bottom: 1.5rem; }
+    .list { grid-column: 1; grid-row: 2; padding: 1.25rem 1.6rem 0; }
+    .map { grid-column: 2; grid-row: 1 / span 2; position: sticky; top: 0; height: 100vh; height: 100dvh; align-self: start; border: 0; border-left: 1px solid var(--rule); }
+  }
+  .nomap .map { display: none; }
+  .nomap.app { grid-template-columns: minmax(0, 42rem); justify-content: center; }
+  .nomap .head, .nomap .list { grid-column: 1; }
+
+  /* ---- Head: the county's teal page banner ---- */
+  .proto { margin: 0 calc(var(--pad) * -1); padding: .6rem var(--pad); background: var(--page); color: var(--ink); border-left: 6px solid var(--alert); border-bottom: 1px solid var(--rule); font-size: .875rem; line-height: 1.45; }
+  h1 { font-size: 1.75rem; font-weight: 700; line-height: 1.2; margin-top: 1.1rem; }
+  .sub { margin-top: .2rem; }
+  .nw { white-space: nowrap; }
+  .sub .other { background: #FFFFFF; color: #A25E00; font-weight: 700; padding: .05rem .4rem; border-radius: 4px; }
+  .time { margin-top: .35rem; font-size: .9375rem; }
+  .time summary { cursor: pointer; text-decoration: underline; text-underline-offset: .15em; width: fit-content; }
+  .time div { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+  .time input, .time button, select { background: #FFFFFF; color: #212529; border: 1px solid #DCDCDC; border-radius: 4px; padding: .5rem .7rem; min-height: 2.75rem; }
+  .time button { cursor: pointer; }
+  .head :focus-visible { outline-color: #FFFFFF; }
+
+  .locate { display: grid; gap: .65rem; margin-top: 1.1rem; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 2.75rem; padding: .5rem 1.25rem;
+    border: 1px solid var(--teal); border-radius: 4px; background: var(--teal); color: #FFFFFF;
+    font-size: .9375rem; line-height: 1.2; text-decoration: none; cursor: pointer;
+  }
+  .btn.ghost { background: transparent; color: var(--link); border-color: var(--link); }
+  .btn svg { width: 1.1em; height: 1.1em; }
+  .locate .btn { min-height: 3.1rem; background: #FFFFFF; color: #007797; border-color: #FFFFFF; font-size: 1.0625rem; font-weight: 700; }
+  .area { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .7rem; font-size: .9375rem; }
+  .area select { width: 100%; }
+  .locmsg { margin-top: .7rem; font-size: .9375rem; }
+  .locmsg:empty { display: none; }
+  .linkbtn { background: none; border: 0; padding: 0; color: var(--link); text-decoration: underline; text-underline-offset: .15em; cursor: pointer; }
+  .locmsg .linkbtn { color: inherit; }
+
+  /* ---- The closest-place card ---- */
+  .sign { margin-top: 1rem; background: var(--page); color: var(--ink); border-radius: 4px; border-left: 8px solid var(--open); padding: .95rem 1rem 1.05rem; }
+  .sign.dark { border-left-color: var(--alert); }
+  .sign-top { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; color: var(--slate); font-size: .9375rem; }
+  .sign-name { color: var(--head); font-size: 1.45rem; font-weight: 700; line-height: 1.2; margin-top: .1rem; text-wrap: balance; }
+  .sign-km { color: var(--head); font-size: 1.45rem; font-weight: 700; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sign-line { margin-top: .4rem; line-height: 1.45; }
+  .sign-acts { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .85rem; }
+  .head .sign :focus-visible { outline-color: var(--teal-dark); }
+  @media (prefers-color-scheme: dark) { .head .sign :focus-visible { outline-color: #FFFFFF; } }
+
+  /* ---- View switch ---- */
+  .views { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--link); border-radius: 4px; overflow: hidden; }
+  .views button { background: transparent; color: var(--link); border: 0; padding: .6rem .5rem; min-height: 2.9rem; cursor: pointer; }
+  .views button[aria-pressed="true"] { background: var(--teal); color: #FFFFFF; font-weight: 700; }
+  .views :focus-visible { outline-offset: -4px; }
+  .views button[aria-pressed="true"]:focus-visible { outline-color: #FFFFFF; }
+
+  /* ---- Lists ---- */
+  .grp { margin-top: 1.75rem; }
+  .gh { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding-bottom: .4rem; border-bottom: 1px solid var(--rule); }
+  h2 { color: var(--head); font-size: 1.4375rem; font-weight: 700; line-height: 1.3; }
+  .gh p { color: var(--slate); font-size: .9375rem; white-space: nowrap; }
+  .grp > p { margin-top: .75rem; }
+  .hint { color: var(--slate); font-size: .9375rem; }
+
+  .row { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: .8rem; padding: 1rem .5rem; border-bottom: 1px solid var(--rule); }
+  .row.sel { background: var(--band); box-shadow: inset 4px 0 0 var(--teal); }
+  .row > .pin { width: 1.6rem; height: 1.6rem; margin-top: .1rem; }
+  .row-top { display: flex; justify-content: space-between; align-items: flex-start; gap: .8rem; }
+  h3 { color: var(--head); font-size: 1.125rem; line-height: 1.3; font-weight: 700; }
+  .name { background: none; border: 0; padding: 0; text-align: left; font-weight: inherit; cursor: pointer; }
+  .name:hover { color: var(--link); text-decoration: underline; text-underline-offset: .15em; }
+  .km { color: var(--head); font-weight: 700; font-size: 1.125rem; line-height: 1.3; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .status { font-weight: 700; }
+  .row.open .status { color: var(--open-text); }
+  .row.closed .status, .row.unknown .status { color: var(--slate); font-weight: 400; }
+  .addr, .note, .src { color: var(--slate); font-size: .9375rem; line-height: 1.5; }
+  .src { font-size: .8125rem; margin-top: .2rem; }
+  .src a { color: inherit; }
+  .acts { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.1rem; margin-top: .55rem; }
+  .acts a { display: inline-flex; align-items: center; min-height: 2.5rem; }
+  .acts .go { padding: 0 1rem; border: 1px solid var(--link); border-radius: 4px; text-decoration: none; font-size: .9375rem; }
+  .tag { display: inline-block; font-size: .8125rem; font-weight: 700; line-height: 1.5; color: var(--head); border: 1px solid var(--slate); border-radius: 4px; padding: 0 .4rem; margin: .3rem .35rem 0 0; }
+
+  .bus { border: 4px solid var(--alert-soft); padding: .85rem 1rem; margin-top: 1.3rem; }
+  .bus strong { display: block; color: var(--head); font-size: 1.25rem; line-height: 1.3; }
+  .filters { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1rem; }
+  .filters button { background: transparent; color: var(--link); border: 1px solid var(--link); border-radius: 4px; padding: .4rem .9rem; min-height: 2.6rem; font-size: .9375rem; cursor: pointer; }
+  .filters button[aria-pressed="true"] { background: var(--teal); color: #FFFFFF; border-color: var(--teal); }
+
+  .calls li { display: grid; grid-template-columns: 8.2rem minmax(0, 1fr); gap: .8rem; align-items: baseline; padding: .85rem 0; border-bottom: 1px solid var(--rule); }
+  .calls a { font-size: 1.125rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .calls p { font-size: .9375rem; line-height: 1.5; }
+  footer { margin: 2.25rem -1.1rem 0; padding: 1.5rem 1.1rem 2.5rem; background: var(--band); color: var(--slate); font-size: .8125rem; line-height: 1.55; }
+  @media (min-width: 60rem) { footer { margin: 2.25rem -1.6rem 0; padding: 1.5rem 1.6rem 2.5rem; } }
+  footer p + p { margin-top: .6rem; }
+
+  /* ---- Pins: a green window is open, an empty window is closed, a question mark is "call first", a moon is overnight ---- */
+  .pin rect, .pin circle { fill: #FFFFFF; stroke: #707070; stroke-width: 2.5; }
+  .pin path { fill: none; stroke: #707070; stroke-width: 2; }
+  .pin text { fill: #606060; font: 700 17px Helvetica, Arial, sans-serif; }
+  .pin.open rect { fill: var(--open); stroke: var(--pin-line); }
+  .pin.open path { stroke: #FFFFFF; }
+  .pin.night circle { fill: #044D66; stroke: #FFFFFF; stroke-width: 2; }
+  .pin.night path { fill: #FFFFFF; stroke: none; }
+  .mk { background: none; border: 0; }
+  .mk .pin { width: 100%; height: 100%; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .45)); transition: transform .12s; }
+  .mk.sel .pin { transform: scale(1.35); }
+  .here { background: var(--alert); border: 3px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 0 2px var(--alert), 0 1px 4px rgba(0, 0, 0, .5); }
+
+  .leaflet-container { font: inherit; background: var(--band); }
+  /* Quiet the base map so the pins carry the page. In dark mode it is flipped to a night map. */
+  .leaflet-tile-pane { filter: saturate(.45) contrast(.92) brightness(1.04); }
+  .leaflet-popup-content-wrapper { border-radius: 4px; background: var(--page); color: var(--ink); }
+  .leaflet-popup-tip { background: var(--page); }
+  .leaflet-popup-content { margin: .8rem .95rem .75rem; font-size: .9375rem; line-height: 1.45; }
+  .leaflet-popup-content strong { display: block; color: var(--head); font-size: 1.0625rem; line-height: 1.3; }
+  .leaflet-container a { color: var(--link); }
+  .leaflet-container a.leaflet-popup-close-button { color: var(--slate); }
+  @media (prefers-color-scheme: dark) {
+    .leaflet-tile-pane { filter: grayscale(.85) invert(1) hue-rotate(185deg) brightness(.9) contrast(.82) sepia(.18) hue-rotate(160deg); }
+    .leaflet-control-attribution { background: rgba(29, 33, 37, .85) !important; color: #B4BAC0; }
+    .leaflet-bar a { background: #262B30; color: #E9ECEF; border-color: #3B4249; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+  @media print {
+    :root { --page: #fff; --band: #fff; --ink: #000; --head: #000; --slate: #333; --rule: #999; --link: #000; --teal: #fff; --on-teal: #000; --open-text: #000; }
+    .app { display: block; }
+    .map, .locate, .locmsg, .time, .views, .filters, .src, .acts .go, .sign-acts { display: none !important; }
+    .head, .list { padding: 0; }
+    .proto { margin: 0; padding: 0 0 .5rem; border: 0; }
+    .row { padding: .35rem 0; break-inside: avoid; }
+    footer { margin: 1rem 0 0; padding: 0; }
+    a { text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="head">
+    <p class="proto"><strong>Student prototype. Not an official Strathcona County page.</strong> Hours can change, so call before you go.</p>
+    <h1>Find a warm place</h1>
+    <p class="sub">Strathcona County, <span id="when"></span></p>
+    <details class="time" id="time">
+      <summary>Check another time</summary>
+      <div>
+        <input type="datetime-local" id="at" aria-label="Date and time to check">
+        <button type="button" id="now" hidden>Back to now</button>
+      </div>
+    </details>
+
+    <div class="locate">
+      <button type="button" class="btn" id="find">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 3 3 10.5v1l7 2.5 2.5 7h1z"/></svg>
+        <span id="find-label">Find closest to me</span>
+      </button>
+      <label class="area"><span>or choose an area</span>
+        <select id="area"><option value="">Choose an area</option></select>
+      </label>
+    </div>
+    <p class="locmsg" id="locmsg" role="status"></p>
+    <div id="nearest" aria-live="polite"></div>
+  </header>
+
+  <div class="map" id="map" role="region" aria-label="Map of warm places"></div>
+
+  <main class="list">
+    <div class="views" role="group" aria-label="What do you need">
+      <button type="button" data-v="warm" aria-pressed="true">Warm up now</button>
+      <button type="button" data-v="night" aria-pressed="false">Stay overnight</button>
+    </div>
+
+    <div id="v-warm">
+      <section class="grp" aria-labelledby="h-open">
+        <div class="gh"><h2 id="h-open">Open now</h2><p id="tally"></p></div>
+        <ul id="open"></ul>
+        <p id="none" hidden>Nothing on this list is open at this time. See <button type="button" class="linkbtn" data-goto="night">overnight shelters</button>, or call <a href="tel:211">211</a> at any hour.</p>
+        <p class="hint">You can also ride any Strathcona County Transit bus to warm up while buses are running. No fare is needed.</p>
+      </section>
+      <section class="grp" aria-labelledby="h-closed" id="closed-sec">
+        <div class="gh"><h2 id="h-closed">Closed right now</h2></div>
+        <ul id="closed"></ul>
+      </section>
+      <section class="grp" aria-labelledby="h-ask" id="ask-sec">
+        <div class="gh"><h2 id="h-ask">Call first</h2></div>
+        <p class="hint">We could not confirm these, so we do not show them as open or closed.</p>
+        <ul id="ask"></ul>
+      </section>
+    </div>
+
+    <div id="v-night" hidden>
+      <div class="bus">
+        <strong id="bus"></strong>
+        <p>Sunday and holiday buses may stop earlier. Call the shelter first to confirm there is space.</p>
+      </div>
+      <section class="grp" aria-labelledby="h-night">
+        <div class="gh"><h2 id="h-night">Overnight shelters in Edmonton</h2></div>
+        <p class="hint">The county's cold-weather card lists no overnight shelter in Strathcona County. It sends people to these Edmonton shelters on regular county bus routes.</p>
+        <div class="filters" role="group" aria-label="Show shelters for">
+          <button type="button" data-f="all" aria-pressed="true">Everyone</button>
+          <button type="button" data-f="men" aria-pressed="false">Men</button>
+          <button type="button" data-f="women" aria-pressed="false">Women</button>
+          <button type="button" data-f="youth" aria-pressed="false">Youth</button>
+          <button type="button" data-f="pets" aria-pressed="false">With a pet</button>
+        </div>
+        <ul id="shelters"></ul>
+      </section>
+    </div>
+
+    <section class="grp" aria-labelledby="h-call">
+      <div class="gh"><h2 id="h-call">Who to call</h2></div>
+      <ul class="calls">
+        <li><a href="tel:911">911</a><p>Someone is in serious distress, or it is an emergency.</p></li>
+        <li><a href="tel:211">211</a><p>Information and referral to community, social and health services. Open 24 hours, every day.</p></li>
+        <li><a href="tel:7804644044">780-464-4044</a><p>Family and Community Services, 2nd floor, 401 Festival Lane. Monday to Friday during business hours. Emergency food and clothing, hygiene needs, a public phone, housing options and help getting to Edmonton shelters.</p></li>
+        <li><a href="tel:7804677741">780-467-7741</a><p>RCMP and Enforcement Services non-emergency line, 24 hours. Call if you are worried about someone outside in the cold.</p></li>
+      </ul>
+    </section>
+
+    <footer>
+      <p>Student prototype for a University of Alberta course project. It is not run or approved by Strathcona County.</p>
+      <p>Warm places, shelters and phone numbers come from the county's cold-weather card (updated Oct. 2026). Hours come from county facility pages and the library's page, checked <span id="checked"></span>. On holidays with no published hours, places are listed under "Call first". Distances are straight-line, not travel distance.</p>
+      <p>Your location is used only on this device to sort the list. This page does not save it or send it anywhere. The map loads from outside services (OpenStreetMap, unpkg). They can see that your browser asked for them, and the map service can see roughly which area the map is showing.</p>
+    </footer>
+  </main>
+</div>
+
+<script src="places.js"></script>
+<script src="finder.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const dateLabel = (ymd) => { const [, m, d] = ymd.split("-").map(Number); return `${d} ${MONTHS[m - 1]}`; };
+  const calm = matchMedia("(prefers-reduced-motion: reduce)");
+  const wide = matchMedia("(min-width: 60rem)");
+  const byId = Object.fromEntries(PLACES.map((p) => [p.id, p]));
+  const picker = $("at");
+
+  let view = "warm";   // "warm" | "night"
+  let filter = "all";  // shelter filter
+  let loc = null;      // { lat, lng, label } once the person shares a location or picks an area
+  let selected = null; // id of the place highlighted in the list and on the map
+  const info = {};     // id -> { state, line, km }, what the list and the map both show
+
+  const WINDOW = `<rect x="3" y="3" width="22" height="22" rx="4"/><path d="M14 4v20M4 14h20"/>`;
+  const ICON = {
+    open: `<svg class="pin open" viewBox="0 0 28 28" aria-hidden="true">${WINDOW}</svg>`,
+    closed: `<svg class="pin shut" viewBox="0 0 28 28" aria-hidden="true">${WINDOW}</svg>`,
+    unknown: `<svg class="pin ask" viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="3" width="22" height="22" rx="4"/><text x="14" y="20.5" text-anchor="middle">?</text></svg>`,
+    night: `<svg class="pin night" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12"/><path d="M19.2 16.6A6.4 6.4 0 0 1 11.4 8.8a6.8 6.8 0 1 0 7.8 7.8z"/></svg>`,
+  };
+
+  // Destination only. The person's own location never goes into a link.
+  const dirUrl = (pl) => `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(pl.name + ", " + pl.address)}`;
+  const telUrl = (p) => `tel:${p.replace(/\D/g, "")}`;
+  const where = (pl) => (pl.area && !pl.address.includes(pl.area) ? `${pl.address}, ${pl.area}` : pl.address);
+  const openLine = (x) => (x.minutesLeft <= 45 ? `Closes in ${x.minutesLeft} minutes, at ${Finder.fmtTime(x.closes)}` : `Open until ${Finder.fmtTime(x.closes)}`);
+  const askLine = (x) => (x.reason === "holiday" ? "Holiday hours are not published" : x.place.ask || "Building hours are not published");
+
+  function row(pl) {
+    const i = info[pl.id];
+    const tags = (pl.only ? `<span class="tag">${{ men: "Men only", women: "Women only", youth: "Youth" }[pl.only]}</span>` : "") + (pl.pets ? `<span class="tag">Pets allowed</span>` : "");
+    return `<li class="row ${i.state}${selected === pl.id ? " sel" : ""}" data-id="${pl.id}">${ICON[i.state]}<div>` +
+      `<div class="row-top"><h3><button type="button" class="name" data-show="${pl.id}" title="Show on the map">${esc(pl.name)}</button></h3>` +
+      (i.km != null ? `<span class="km">${Finder.fmtDistance(i.km)}</span>` : "") + `</div>` +
+      (tags ? `<p>${tags}</p>` : "") +
+      (i.line ? `<p class="status">${esc(i.line)}</p>` : "") +
+      `<p class="addr">${esc(where(pl))}</p>` +
+      (pl.note ? `<p class="note">${esc(pl.note)}</p>` : "") +
+      `<p class="acts"><a class="go" href="${dirUrl(pl)}" target="_blank" rel="noopener">Directions</a>` +
+      (pl.phone ? `<a href="${telUrl(pl.phone)}">Call ${esc(pl.phone)}</a>` : "") + `</p>` +
+      (pl.source.url ? `<p class="src">Hours from the <a href="${esc(pl.source.url)}">${esc(pl.source.label.toLowerCase())}</a></p>` : "") +
+      `</div></li>`;
+  }
+
+  // x: closest open place. maybe: a closer place we could not confirm. soonest: next to open when nothing is.
+  function sign(x, maybe, soonest) {
+    if (x) {
+      const pl = x.place;
+      return `<div class="sign"><div><div class="sign-top"><p>Closest open place</p><p class="sign-km">${Finder.fmtDistance(x.km)}</p></div>` +
+        `<p class="sign-name">${esc(pl.name)}</p><p class="sign-line">${esc(openLine(x))}<br>${esc(where(pl))}</p>` +
+        (maybe ? `<p class="sign-line">Closer, but call first: <button type="button" class="linkbtn" data-show="${maybe.place.id}">${esc(maybe.place.name)}</button>, ${Finder.fmtDistance(maybe.km)}</p>` : "") +
+        `<p class="sign-acts"><a class="btn" href="${dirUrl(pl)}" target="_blank" rel="noopener">Directions</a>` +
+        (pl.phone ? `<a class="btn ghost" href="${telUrl(pl.phone)}">Call</a>` : "") +
+        `<button type="button" class="btn ghost" data-show="${pl.id}">Show on map</button></p></div></div>`;
+    }
+    return `<div class="sign dark"><div><p class="sign-name">No listed warm place is open</p>` +
+      (soonest ? `<p class="sign-line">Soonest: ${esc(soonest.place.name)}<br>${esc(Finder.fmtOpens(soonest.opens))}</p>` : "") +
+      `<p class="sign-acts"><button type="button" class="btn" data-goto="night">See overnight shelters</button><a class="btn ghost" href="tel:211">Call 211</a></p></div></div>`;
+  }
+
+  function render() {
+    const isNow = !picker.value;
+    const at = isNow ? Finder.momentNow() : Finder.momentFromLocal(picker.value);
+    const s = Finder.summarize(PLACES, at, STAT_HOLIDAYS, loc);
+    const warmCount = s.open.length + s.closed.length + s.unknown.length;
+
+    $("when").innerHTML = esc(`${Finder.DAYS[at.dow]} ${dateLabel(at.ymd)}, `) + `<span class="nw">${esc(Finder.fmtTime(at.minutes))}</span>` + (isNow ? "" : ` <span class="other nw">not the current time</span>`);
+    $("now").hidden = isNow;
+
+    for (const x of s.open) info[x.place.id] = { state: "open", line: openLine(x), km: x.km };
+    for (const x of s.closed) info[x.place.id] = { state: "closed", line: Finder.fmtOpens(x.opens), km: x.km };
+    for (const x of s.unknown) info[x.place.id] = { state: "unknown", line: askLine(x), km: x.km };
+    const shelters = PLACES.filter((p) => p.kind === "overnight").map((p) => ({ place: p, km: loc ? Finder.distanceKm(loc, p) : null }));
+    if (loc) shelters.sort((a, b) => a.km - b.km);
+    for (const x of shelters) info[x.place.id] = { state: "night", line: "", km: x.km };
+
+    // The sign: closest open place once we know where the person is, or a plain warning when nothing is open.
+    const soonest = s.open.length ? null : Finder.summarize(PLACES, at, STAT_HOLIDAYS).closed[0];
+    const maybe = loc && s.open.length && s.unknown.length && s.unknown[0].km < s.open[0].km ? s.unknown[0] : null;
+    $("nearest").innerHTML = s.open.length ? (loc ? sign(s.open[0], maybe) : "") : sign(null, null, soonest);
+
+    $("tally").textContent = `${s.open.length} of ${warmCount} places`;
+    $("open").innerHTML = s.open.map((x) => row(x.place)).join("");
+    $("closed").innerHTML = s.closed.map((x) => row(x.place)).join("");
+    $("ask").innerHTML = s.unknown.map((x) => row(x.place)).join("");
+    $("none").hidden = s.open.length > 0;
+    $("closed-sec").hidden = !s.closed.length;
+    $("ask-sec").hidden = !s.unknown.length;
+
+    const bus = Finder.lastBus(at), t = Finder.fmtTime(bus.time);
+    const left = bus.minutesLeft >= 60 ? `${Math.floor(bus.minutesLeft / 60)} h ${bus.minutesLeft % 60} min` : `${bus.minutesLeft} minutes`;
+    $("bus").textContent = bus.gone ? `The last bus to Edmonton left at ${t}` : `Last bus to Edmonton: ${t}` + (bus.minutesLeft <= 180 ? `, in ${left}` : "");
+    $("shelters").innerHTML = shelters.filter((x) => Finder.shelterMatches(x.place, filter)).map((x) => row(x.place)).join("");
+
+    $("nearest").hidden = view !== "warm"; // its "Show on map" points at warm-place pins
+    $("v-warm").hidden = view !== "warm";
+    $("v-night").hidden = view !== "night";
+    document.querySelectorAll(".views button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === view)));
+    drawMap();
+  }
+
+  // ---- Map. An extra: if the library or the tiles fail to load, the list above still works. ----
+  let map = null, tiles = null, here = null;
+  const markers = {};
+  const popup = (id) => {
+    const pl = byId[id], i = info[id];
+    return `<strong>${esc(pl.name)}</strong>${i.line ? esc(i.line) + "<br>" : ""}${i.km != null ? Finder.fmtDistance(i.km) + " away<br>" : ""}<a href="${dirUrl(pl)}" target="_blank" rel="noopener">Directions</a>`;
+  };
+
+  function initMap() {
+    if (typeof L === "undefined") { $("app").classList.add("nomap"); return; }
+    map = L.map("map", { zoomControl: true, scrollWheelZoom: true });
+    // ponytail: OpenStreetMap's public tiles, fine for a prototype's traffic. A county version would use the county's own basemap.
+    tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
+    for (const pl of PLACES) {
+      markers[pl.id] = L.marker([pl.lat, pl.lng], { keyboard: true }).bindPopup(() => popup(pl.id)).on("click", () => select(pl.id, true));
+    }
+    map.on("popupclose", (e) => { if (e.popup._source === markers[selected]) { selected = null; paintSelection(); } });
+  }
+
+  function drawMap() {
+    if (!map) return;
+    for (const pl of PLACES) {
+      const m = markers[pl.id], i = info[pl.id], show = (pl.kind === "warm") === (view === "warm") && (pl.kind === "warm" || Finder.shelterMatches(pl, filter));
+      // Only swap the icon when the status changes: Leaflet closes an open popup whenever the icon is replaced.
+      if (m.state !== i.state) { m.state = i.state; m.setIcon(L.divIcon({ className: "mk", html: ICON[i.state], iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -14] })); }
+      m.setZIndexOffset(selected === pl.id ? 1000 : i.state === "open" ? 500 : 0);
+      if (show && !map.hasLayer(m)) m.addTo(map);
+      if (!show && map.hasLayer(m)) m.remove();
+      const el = m.getElement();
+      if (el) { el.classList.toggle("sel", selected === pl.id); el.title = `${pl.name}${i.line ? ", " + i.line : ""}`; }
+    }
+    if (here) { here.remove(); here = null; }
+    if (loc) here = L.marker([loc.lat, loc.lng], { icon: L.divIcon({ className: "here", iconSize: [18, 18] }), interactive: false, keyboard: false, zIndexOffset: 2000 }).addTo(map);
+  }
+
+  // Frame the map: the whole view, or the person and the closest open place once we know where they are.
+  function frame() {
+    if (!map) return;
+    const inView = PLACES.filter((p) => (p.kind === "warm") === (view === "warm") && map.hasLayer(markers[p.id]));
+    let pts = inView.map((p) => [p.lat, p.lng]);
+    if (loc) {
+      const near = inView.map((p) => ({ p, km: Finder.distanceKm(loc, p) })).filter((x) => view === "night" || info[x.p.id].state === "open").sort((a, b) => a.km - b.km)[0];
+      if (near && near.km < 80) pts = [[loc.lat, loc.lng], [near.p.lat, near.p.lng]];
+    }
+    if (pts.length) map.fitBounds(pts, { padding: [48, 48], maxZoom: 15, animate: !calm.matches });
+  }
+
+  function paintSelection() {
+    document.querySelectorAll(".row").forEach((r) => r.classList.toggle("sel", r.dataset.id === selected));
+    drawMap();
+  }
+
+  function select(id, fromMap) {
+    selected = id;
+    paintSelection();
+    if (!map) return;
+    const smooth = calm.matches ? "auto" : "smooth";
+    if (fromMap) {
+      if (wide.matches) document.querySelector(`.row[data-id="${id}"]`)?.scrollIntoView({ block: "nearest", behavior: smooth });
+    } else {
+      if (!wide.matches) $("map").scrollIntoView({ block: "start", behavior: smooth });
+      map.setView(markers[id].getLatLng(), Math.max(map.getZoom(), 14), { animate: !calm.matches });
+      markers[id].openPopup();
+    }
+  }
+
+  // ---- Location: the browser's own, or an area picked from the list ----
+  const say = (html) => { $("locmsg").innerHTML = html; };
+  function setLoc(next) {
+    loc = next;
+    selected = null;
+    $("find-label").textContent = loc && !loc.area ? "Update my location" : "Find closest to me";
+    if (!loc || !loc.area) $("area").value = "";
+    render();
+    if (loc) {
+      const nearest = Math.min(...PLACES.filter((p) => p.kind === "warm").map((p) => Finder.distanceKm(loc, p)));
+      say((nearest > 40 ? "You look to be outside Strathcona County. Choose an area to see what is near it. " : `Closest first, measured in a straight line from ${esc(loc.label)}. `) + `<button type="button" class="linkbtn" id="clear">Clear</button>`);
+    } else say("");
+    frame();
+  }
+
+  $("find").addEventListener("click", () => {
+    if (!navigator.geolocation) return say("This browser cannot share a location. Choose an area instead.");
+    say("Finding your location…");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude, label: "your location" }),
+      (err) => say(err.code === 1 ? "Location is blocked for this page. Choose an area instead." : "Your location could not be found. Choose an area instead."),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+  });
+  $("area").innerHTML += AREAS.map((a, i) => `<option value="${i}">${esc(a.name)}</option>`).join("");
+  $("area").addEventListener("change", (e) => {
+    const a = AREAS[e.target.value];
+    setLoc(a ? { lat: a.lat, lng: a.lng, label: a.name, area: true } : null);
+  });
+
+  function setView(v) { view = v; selected = null; if (map) map.closePopup(); render(); frame(); }
+
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-show], [data-goto], [data-v], [data-f], #clear");
+    if (!t) return;
+    if (t.id === "clear") setLoc(null);
+    else if (t.dataset.show) select(t.dataset.show, false);
+    else if (t.dataset.goto) { setView(t.dataset.goto); document.querySelector(".views").scrollIntoView({ block: "start", behavior: calm.matches ? "auto" : "smooth" }); }
+    else if (t.dataset.v) setView(t.dataset.v);
+    else if (t.dataset.f) {
+      filter = t.dataset.f;
+      document.querySelectorAll(".filters button").forEach((b) => b.setAttribute("aria-pressed", String(b === t)));
+      render(); frame();
+    }
+  });
+  picker.addEventListener("input", render);
+  $("now").addEventListener("click", () => { picker.value = ""; render(); });
+
+  // ?at=2026-11-15T20:00 opens the page at that time (handy for showing a gap).
+  const preset = new URLSearchParams(location.search).get("at");
+  if (preset && /^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(preset)) { picker.value = preset; $("time").open = true; }
+  $("checked").textContent = `${dateLabel(CHECKED)} ${CHECKED.slice(0, 4)}`;
+  render();
+  setInterval(render, 60000); // keep "open now" current while the page stays open
+  function mapReady() { initMap(); render(); frame(); }
+</script>
+<!-- Loaded last so the list never waits on the map. If it fails, the page drops to a single column. -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" onload="mapReady()" onerror="document.getElementById('app').classList.add('nomap')"></script>
+</body>
+</html>
