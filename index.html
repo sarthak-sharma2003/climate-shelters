@@ -144,6 +144,12 @@
   .leaflet-container { font: inherit; background: var(--band); }
   /* Quiet the base map so the pins carry the page. */
   .leaflet-tile-pane { filter: saturate(.45) contrast(.92) brightness(1.04); }
+  .legend { background: var(--page); color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; padding: .4rem .6rem; font-size: .8125rem; line-height: 1.3; }
+  .legend p { display: flex; align-items: center; gap: .45rem; margin: .2rem 0; }
+  .legend .pin { width: 1.05rem; height: 1.05rem; flex: none; }
+  /* On a phone the key runs along the bottom in one or two lines, so it does not sit on top of pins. */
+  @media (max-width: 59.99rem) { .leaflet-bottom .legend { display: flex; flex-wrap: wrap; gap: 0 .8rem; margin-bottom: 22px; } }
+  .legend .edge { width: 1.05rem; height: .7rem; flex: none; border: 2px solid var(--teal); background: rgba(0, 119, 151, .1); border-radius: 2px; }
   .leaflet-popup-content-wrapper { border-radius: 4px; background: var(--page); color: var(--ink); }
   .leaflet-popup-tip { background: var(--page); }
   .leaflet-popup-content { margin: .8rem .95rem .75rem; font-size: .9375rem; line-height: 1.45; }
@@ -256,6 +262,7 @@
 </div>
 
 <script src="places.js"></script>
+<script src="boundary.js"></script>
 <script src="finder.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
@@ -362,7 +369,7 @@
   }
 
   // ---- Map. An extra: if the library or the tiles fail to load, the list above still works. ----
-  let map = null, tiles = null, here = null;
+  let map = null, tiles = null, here = null, county = null, legend = null;
   const markers = {};
   const popup = (id) => {
     const pl = byId[id], i = info[id];
@@ -371,9 +378,14 @@
 
   function initMap() {
     if (typeof L === "undefined") { $("app").classList.add("nomap"); return; }
-    map = L.map("map", { zoomControl: true, scrollWheelZoom: true });
+    map = L.map("map", { zoomControl: true, scrollWheelZoom: true, zoomSnap: 0.25 }); // quarter steps, so the county fills a phone-sized map
     // ponytail: OpenStreetMap's public tiles, fine for a prototype's traffic. A county version would use the county's own basemap.
     tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
+    // The county's outline, so it is plain what the map covers and where the gaps are.
+    if (typeof COUNTY !== "undefined") county = L.geoJSON({ type: "Feature", geometry: COUNTY }, { interactive: false, style: { color: "#007797", weight: 2.5, fillColor: "#007797", fillOpacity: 0.07 } }).addTo(map);
+    const key = L.control({ position: "bottomleft" });
+    key.onAdd = () => (legend = L.DomUtil.create("div", "legend"));
+    key.addTo(map);
     for (const pl of PLACES) {
       markers[pl.id] = L.marker([pl.lat, pl.lng], { keyboard: true }).bindPopup(() => popup(pl.id)).on("click", () => select(pl.id, true));
     }
@@ -392,6 +404,7 @@
       const el = m.getElement();
       if (el) { el.classList.toggle("sel", selected === pl.id); el.title = `${pl.name}${i.line ? ", " + i.line : ""}`; }
     }
+    legend.innerHTML = (view === "warm" ? `<p>${ICON.open}Open now</p><p>${ICON.closed}Closed</p><p>${ICON.unknown}Call first</p>` : `<p>${ICON.night}Overnight shelter</p>`) + (county ? `<p><span class="edge"></span>Strathcona County</p>` : "");
     if (here) { here.remove(); here = null; }
     if (loc) here = L.marker([loc.lat, loc.lng], { icon: L.divIcon({ className: "here", iconSize: [18, 18] }), interactive: false, keyboard: false, zIndexOffset: 2000 }).addTo(map);
   }
@@ -405,6 +418,7 @@
       const near = inView.map((p) => ({ p, km: Finder.distanceKm(loc, p) })).filter((x) => view === "night" || info[x.p.id].state === "open").sort((a, b) => a.km - b.km)[0];
       if (near && near.km < 80) pts = [[loc.lat, loc.lng], [near.p.lat, near.p.lng]];
     }
+    if (!loc && view === "warm" && county) return map.fitBounds(county.getBounds(), { paddingTopLeft: [12, 12], paddingBottomRight: [12, wide.matches ? 12 : 64], animate: !calm.matches }); // the whole county, clear of the key
     if (pts.length) map.fitBounds(pts, { padding: [48, 48], maxZoom: 15, animate: !calm.matches });
   }
 
@@ -436,8 +450,8 @@
     if (!loc || !loc.area) $("area").value = "";
     render();
     if (loc) {
-      const nearest = Math.min(...PLACES.filter((p) => p.kind === "warm").map((p) => Finder.distanceKm(loc, p)));
-      say((nearest > 40 ? "You look to be outside Strathcona County. Choose an area to see what is near it. " : `Closest first, measured in a straight line from ${esc(loc.label)}. `) + `<button type="button" class="linkbtn" id="clear">Clear</button>`);
+      const outside = typeof COUNTY !== "undefined" && !Finder.inside(loc, COUNTY);
+      say((outside ? "You look to be outside Strathcona County. Choose an area to see what is near it. " : `Closest first, measured in a straight line from ${esc(loc.label)}. `) + `<button type="button" class="linkbtn" id="clear">Clear</button>`);
     } else say("");
     frame();
   }

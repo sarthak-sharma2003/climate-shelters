@@ -56,6 +56,17 @@
     return 12742 * Math.asin(Math.sqrt(h));
   }
 
+  // Is a { lat, lng } point inside a GeoJSON Polygon or MultiPolygon? Even-odd rule over every ring, so holes work.
+  function inside(pt, geom) {
+    const rings = geom.type === "Polygon" ? geom.coordinates : geom.coordinates.flat();
+    let hit = false;
+    for (const r of rings) for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const [xi, yi] = r[i], [xj, yj] = r[j];
+      if ((yi > pt.lat) !== (yj > pt.lat) && pt.lng < ((xj - xi) * (pt.lat - yi)) / (yj - yi) + xi) hit = !hit;
+    }
+    return hit;
+  }
+
   function fmtDistance(km) {
     if (km < 0.95) return `${Math.max(1, Math.round(km * 10)) * 100} m`;
     return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`;
@@ -105,7 +116,7 @@
     return `Opens ${day} at ${fmtTime(opens.minutes)}`;
   }
 
-  const api = { DAYS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance };
+  const api = { DAYS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance, inside };
   root.Finder = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

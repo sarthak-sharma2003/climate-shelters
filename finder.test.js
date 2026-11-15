@@ -2,6 +2,7 @@
 const assert = require("node:assert/strict");
 const F = require("./finder.js");
 const { PLACES, STAT_HOLIDAYS, AREAS } = require("./places.js");
+const { COUNTY } = require("./boundary.js");
 
 const at = (s) => F.momentFromLocal(s);
 const ids = (list) => list.map((x) => x.place.id).sort();
@@ -88,6 +89,12 @@ assert.ok(s.open[0].km > 15); // nothing confirmed open within 15 km of Josephbu
 const inBox = (p, [s0, n0, w0, e0]) => p.lat > s0 && p.lat < n0 && p.lng > w0 && p.lng < e0;
 for (const p of PLACES) assert.ok(inBox(p, p.kind === "warm" ? [53.35, 53.9, -113.4, -112.8] : [53.45, 53.65, -113.7, -113.4]), p.id);
 for (const a of AREAS) assert.ok(inBox(a, [53.35, 53.9, -113.4, -112.8]), a.name);
+
+// The county outline: every warm place and every area in the picker is inside it, no Edmonton shelter is,
+// and neither is Camrose (where this may well be demoed from).
+for (const p of PLACES) assert.equal(F.inside(p, COUNTY), p.kind === "warm", p.id);
+for (const a of AREAS) assert.ok(F.inside(a, COUNTY), a.name);
+assert.equal(F.inside({ lat: 53.0167, lng: -112.8236 }, COUNTY), false);
 
 // Data sanity: every warm place has a source, and every hours row is well formed.
 for (const p of PLACES) {

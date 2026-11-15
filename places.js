@@ -1,5 +1,11 @@
 // Data for the warm-place finder. Edit this file to update hours.
 //
+// TO ADD A PLACE: copy one { ... } block inside PLACES, change the details, and add lat and lng to it
+// (in Google Maps, right-click the building and click the two numbers to copy them).
+// Save, and it shows up on the map, in the list and in "Find closest". Nothing else needs changing.
+// kind: "warm" = somewhere to warm up, listed with its hours. "overnight" = an overnight shelter.
+// Run `node finder.test.js` afterwards: it fails if a pin lands outside the county or the hours are mistyped.
+//
 // hours: 7 entries, index 0 = Sunday ... 6 = Saturday.
 //        Each is ["HH:MM", "HH:MM"] in 24-hour time, or null for closed that day.
 //        hours: null for the whole field means the source page publishes no building hours.
@@ -157,7 +163,7 @@ const COORDS = {
   "central-seed-women": [53.55138, -113.48318],
   "maskokamik": [53.57156, -113.45328],
 };
-for (const p of PLACES) [p.lat, p.lng] = COORDS[p.id];
+for (const p of PLACES) if (COORDS[p.id]) [p.lat, p.lng] = COORDS[p.id]; // a new place can carry its own lat and lng instead
 
 // Starting points for people who do not share their location: Sherwood Park and the county's hamlets.
 const AREAS = [
