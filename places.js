@@ -4,6 +4,8 @@
 // (in Google Maps, right-click the building and click the two numbers to copy them).
 // Save, and it shows up on the map, in the list and in "Find closest". Nothing else needs changing.
 // kind: "warm" = somewhere to warm up, listed with its hours. "overnight" = an overnight shelter.
+// good: what the place is CONFIRMED as a shelter from: "cold", "heat", "smoke", "power" (a power outage).
+//       Leave it out and the place counts for cold only. Add e.g. good: ["cold", "heat"] once the county confirms it.
 // Run `node finder.test.js` afterwards: it fails if a pin lands outside the county or the hours are mistyped.
 //
 // hours: 7 entries, index 0 = Sunday ... 6 = Saturday.
@@ -165,7 +167,10 @@ const COORDS = {
 };
 for (const p of PLACES) if (COORDS[p.id]) [p.lat, p.lng] = COORDS[p.id]; // a new place can carry its own lat and lng instead
 
-// Starting points for people who do not share their location: Sherwood Park and the county's hamlets.
+// Every warm place here comes from the county's cold-weather card, so cold is the only thing confirmed so far.
+for (const p of PLACES) if (p.kind === "warm" && !p.good) p.good = ["cold"];
+
+// Hamlet names the address search answers without going online: Sherwood Park and the county's hamlets.
 const AREAS = [
   { name: "Sherwood Park", lat: 53.5257, lng: -113.2966 },
   { name: "Antler Lake", lat: 53.4887, lng: -112.9747 },

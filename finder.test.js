@@ -96,6 +96,9 @@ for (const p of PLACES) assert.equal(F.inside(p, COUNTY), p.kind === "warm", p.i
 for (const a of AREAS) assert.ok(F.inside(a, COUNTY), a.name);
 assert.equal(F.inside({ lat: 53.0167, lng: -112.8236 }, COUNTY), false);
 
+// What a place is good for: every warm place lists at least one need, and only needs the page knows.
+for (const p of PLACES.filter((x) => x.kind === "warm")) assert.ok(p.good.length && p.good.every((g) => g in F.NEEDS), p.id);
+
 // Data sanity: every warm place has a source, and every hours row is well formed.
 for (const p of PLACES) {
   assert.ok(p.source && p.source.label, p.id);

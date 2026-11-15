@@ -2,6 +2,8 @@
 // A "moment" is Edmonton wall time: { ymd: "YYYY-MM-DD", dow: 0-6 (0 = Sunday), minutes: 0-1439 }.
 (function (root) {
   const TZ = "America/Edmonton";
+  // What a place can be confirmed as a shelter from. A place lists these in its `good` array.
+  const NEEDS = { cold: "Cold weather", heat: "Heat", smoke: "Wildfire smoke", power: "Power outage" };
   const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   // ponytail: one fixed time taken from the county's card, not a transit schedule.
@@ -116,7 +118,7 @@
     return `Opens ${day} at ${fmtTime(opens.minutes)}`;
   }
 
-  const api = { DAYS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance, inside };
+  const api = { DAYS, NEEDS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance, inside };
   root.Finder = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

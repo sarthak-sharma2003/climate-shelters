@@ -63,9 +63,11 @@
   }
   .btn.ghost { background: transparent; color: var(--link); border-color: var(--link); }
   .btn svg { width: 1.1em; height: 1.1em; }
-  .locate .btn { min-height: 3.1rem; background: #FFFFFF; color: #007797; border-color: #FFFFFF; font-size: 1.0625rem; font-weight: 700; }
-  .area { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .7rem; font-size: .9375rem; }
-  .area select { width: 100%; }
+  .locate > .btn { min-height: 3.1rem; background: #FFFFFF; color: #007797; border-color: #FFFFFF; font-size: 1.0625rem; font-weight: 700; }
+  .search label { display: block; font-size: .9375rem; margin-bottom: .3rem; }
+  .search div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; }
+  .search input { width: 100%; background: #FFFFFF; color: #212529; border: 1px solid #DCDCDC; border-radius: 4px; padding: .5rem .7rem; min-height: 2.75rem; }
+  .search .btn { background: transparent; color: #FFFFFF; border-color: #FFFFFF; }
   .locmsg { margin-top: .7rem; font-size: .9375rem; }
   .locmsg:empty { display: none; }
   .linkbtn { background: none; border: 0; padding: 0; color: var(--link); text-decoration: underline; text-underline-offset: .15em; cursor: pointer; }
@@ -193,9 +195,14 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 3 3 10.5v1l7 2.5 2.5 7h1z"/></svg>
         <span id="find-label">Find closest to me</span>
       </button>
-      <label class="area"><span>or choose an area</span>
-        <select id="area"><option value="">Choose an area</option></select>
-      </label>
+      <form class="search" id="search" role="search">
+        <label for="q">or enter an address or hamlet</label>
+        <div>
+          <input type="search" id="q" list="areas" autocomplete="off" enterkeyhint="search" placeholder="Main Street, Ardrossan">
+          <button type="submit" class="btn">Search</button>
+        </div>
+        <datalist id="areas"></datalist>
+      </form>
     </div>
     <p class="locmsg" id="locmsg" role="status"></p>
     <div id="nearest" aria-live="polite"></div>
@@ -212,6 +219,7 @@
     <div id="v-warm">
       <section class="grp" aria-labelledby="h-open">
         <div class="gh"><h2 id="h-open">Open now</h2><p id="tally"></p></div>
+        <p class="hint" id="goodfor"></p>
         <ul id="open"></ul>
         <p id="none" hidden>Nothing on this list is open at this time. See <button type="button" class="linkbtn" data-goto="night">overnight shelters</button>, or call <a href="tel:211">211</a> at any hour.</p>
         <p class="hint">You can also ride any Strathcona County Transit bus to warm up while buses are running. No fare is needed.</p>
@@ -259,7 +267,7 @@
     <footer>
       <p>Student prototype for a University of Alberta course project. It is not run or approved by Strathcona County.</p>
       <p>Warm places, shelters and phone numbers come from the county's cold-weather card (updated Oct. 2026). Hours come from county facility pages and the library's page, checked <span id="checked"></span>. On holidays with no published hours, places are listed under "Call first". Distances are straight-line, not travel distance.</p>
-      <p>Your location is used on this device to sort the list. To draw the way to the closest open place, your location and that place are sent to a public OpenStreetMap routing service (routing.openstreetmap.de). This page saves nothing. The map loads from outside services (OpenStreetMap, unpkg). They can see that your browser asked for them, and the map service can see roughly which area the map is showing.</p>
+      <p>Your location is used on this device to sort the list. To draw the way to the closest open place, your location and that place are sent to a public OpenStreetMap routing service (routing.openstreetmap.de). An address you search is sent to OpenStreetMap's search service (nominatim.openstreetmap.org). This page saves nothing. The map loads from outside services (OpenStreetMap, unpkg). They can see that your browser asked for them, and the map service can see roughly which area the map is showing.</p>
     </footer>
   </main>
 </div>
@@ -306,7 +314,7 @@
 
   function row(pl) {
     const i = info[pl.id];
-    const tags = (pl.only ? `<span class="tag">${{ men: "Men only", women: "Women only", youth: "Youth" }[pl.only]}</span>` : "") + (pl.pets ? `<span class="tag">Pets allowed</span>` : "");
+    const tags = (pl.good || []).filter((g) => g !== "cold").map((g) => `<span class="tag">${Finder.NEEDS[g]}</span>`).join("") + (pl.only ? `<span class="tag">${{ men: "Men only", women: "Women only", youth: "Youth" }[pl.only]}</span>` : "") + (pl.pets ? `<span class="tag">Pets allowed</span>` : "");
     return `<li class="row ${i.state}${selected === pl.id ? " sel" : ""}" data-id="${pl.id}">${ICON[i.state]}<div>` +
       `<div class="row-top"><h3><button type="button" class="name" data-show="${pl.id}" title="Show on the map">${esc(pl.name)}</button></h3>` +
       (i.km != null ? `<span class="km">${Finder.fmtDistance(i.km)}</span>` : "") + `</div>` +
@@ -361,6 +369,10 @@
     $("nearest").innerHTML = s.open.length ? (loc ? sign(s.open[0], maybe) : "") : sign(null, null, soonest);
 
     $("tally").textContent = `${s.open.length} of ${warmCount} places`;
+    // What the listed places are confirmed for. Anything nobody has confirmed is said plainly, never guessed.
+    const warm = PLACES.filter((p) => p.kind === "warm");
+    const missing = Object.keys(Finder.NEEDS).filter((k) => !warm.some((p) => p.good.includes(k))).map((k) => Finder.NEEDS[k].toLowerCase());
+    $("goodfor").textContent = "Every place here is on the county's cold-weather list." + (missing.length ? ` Not confirmed yet for any place: ${missing.join(", ")}.` : "");
     $("open").innerHTML = s.open.map((x) => row(x.place)).join("");
     $("closed").innerHTML = s.closed.map((x) => row(x.place)).join("");
     $("ask").innerHTML = s.unknown.map((x) => row(x.place)).join("");
@@ -500,27 +512,43 @@
     loc = next;
     selected = null;
     $("find-label").textContent = loc && !loc.area ? "Update my location" : "Find closest to me";
-    if (!loc || !loc.area) $("area").value = "";
+    if (!loc || !loc.area) $("q").value = "";
     render();
     if (loc) {
       const outside = typeof COUNTY !== "undefined" && !Finder.inside(loc, COUNTY);
-      say((outside ? "You look to be outside Strathcona County. Choose an area to see what is near it. " : `Closest first, measured in a straight line from ${esc(loc.label)}. `) + `<button type="button" class="linkbtn" id="clear">Clear</button>`);
+      say((outside ? "That is outside Strathcona County. Enter an address or hamlet in the county to see what is near it. " : `Closest first, measured in a straight line from ${esc(loc.label)}. `) + `<button type="button" class="linkbtn" id="clear">Clear</button>`);
     } else say("");
     frame();
   }
 
   $("find").addEventListener("click", () => {
-    if (!navigator.geolocation) return say("This browser cannot share a location. Choose an area instead.");
+    if (!navigator.geolocation) return say("This browser cannot share a location. Enter an address instead.");
     say("Finding your location…");
     navigator.geolocation.getCurrentPosition(
       (pos) => setLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude, label: "your location" }),
-      (err) => say(err.code === 1 ? "Location is blocked for this page. Choose an area instead." : "Your location could not be found. Choose an area instead."),
+      (err) => say(err.code === 1 ? "Location is blocked for this page. Enter an address instead." : "Your location could not be found. Enter an address instead."),
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
   });
-  $("area").innerHTML += AREAS.map((a, i) => `<option value="${i}">${esc(a.name)}</option>`).join("");
-  $("area").addEventListener("change", (e) => {
-    const a = AREAS[e.target.value];
-    setLoc(a ? { lat: a.lat, lng: a.lng, label: a.name, area: true } : null);
+  // ---- Address search. Hamlet names are answered from our own list; anything else goes to OpenStreetMap's search. ----
+  // ponytail: the free public search, limited to the county's bounding box, top match only. It is weak on rural
+  // range-road addresses. A county version should use the county's own address finder.
+  const GEOCODER = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ca&bounded=1&viewbox=-113.4016,53.8939,-112.8405,53.3512&q=";
+  $("areas").innerHTML = AREAS.map((a) => `<option value="${esc(a.name)}">`).join("");
+  $("search").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = $("q").value.trim();
+    if (!q) return;
+    const a = AREAS.find((x) => x.name.toLowerCase() === q.toLowerCase());
+    if (a) return setLoc({ lat: a.lat, lng: a.lng, label: a.name, area: true });
+    say("Searching…");
+    try {
+      const [hit] = await (await fetch(GEOCODER + encodeURIComponent(q), { signal: AbortSignal.timeout(8000) })).json();
+      if (!hit) return say("No match for that in Strathcona County. Try a street and a hamlet, like Main Street, Ardrossan.");
+      setLoc({ lat: +hit.lat, lng: +hit.lon, label: hit.display_name.split(",").slice(0, 2).join(",").trim(), area: true });
+      $("q").value = q;
+    } catch (err) {
+      say("The address search is not answering. Try again, or use Find closest to me.");
+    }
   });
 
   function setView(v) { view = v; selected = null; if (map) map.closePopup(); render(); frame(); }
