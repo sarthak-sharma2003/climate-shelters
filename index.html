@@ -78,6 +78,7 @@
   .sign-name { color: var(--head); font-size: 1.45rem; font-weight: 700; line-height: 1.2; margin-top: .1rem; text-wrap: balance; }
   .sign-km { color: var(--head); font-size: 1.45rem; font-weight: 700; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .sign-line { margin-top: .4rem; line-height: 1.45; }
+  .sign-way { margin-top: .4rem; color: var(--head); font-weight: 700; line-height: 1.4; }
   .sign-acts { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .85rem; }
   .head .sign :focus-visible { outline-color: var(--teal-dark); }
 
@@ -149,6 +150,8 @@
   .legend .pin { width: 1.05rem; height: 1.05rem; flex: none; }
   /* On a phone the key runs along the bottom in one or two lines, so it does not sit on top of pins. */
   @media (max-width: 59.99rem) { .leaflet-bottom .legend { display: flex; flex-wrap: wrap; gap: 0 .8rem; margin-bottom: 22px; } }
+  .legend .wayline { width: 1.05rem; flex: none; border-top: 4px solid #044D66; }
+  .leaflet-tooltip.you { color: #333333; font-weight: 700; font-size: .8125rem; padding: .1rem .45rem; }
   .legend .edge { width: 1.05rem; height: .7rem; flex: none; border: 2px solid var(--teal); background: rgba(0, 119, 151, .1); border-radius: 2px; }
   .leaflet-popup-content-wrapper { border-radius: 4px; background: var(--page); color: var(--ink); }
   .leaflet-popup-tip { background: var(--page); }
@@ -256,7 +259,7 @@
     <footer>
       <p>Student prototype for a University of Alberta course project. It is not run or approved by Strathcona County.</p>
       <p>Warm places, shelters and phone numbers come from the county's cold-weather card (updated Oct. 2026). Hours come from county facility pages and the library's page, checked <span id="checked"></span>. On holidays with no published hours, places are listed under "Call first". Distances are straight-line, not travel distance.</p>
-      <p>Your location is used only on this device to sort the list. This page does not save it or send it anywhere. The map loads from outside services (OpenStreetMap, unpkg). They can see that your browser asked for them, and the map service can see roughly which area the map is showing.</p>
+      <p>Your location is used on this device to sort the list. To draw the way to the closest open place, your location and that place are sent to a public OpenStreetMap routing service (routing.openstreetmap.de). This page saves nothing. The map loads from outside services (OpenStreetMap, unpkg). They can see that your browser asked for them, and the map service can see roughly which area the map is showing.</p>
     </footer>
   </main>
 </div>
@@ -288,8 +291,14 @@
     night: `<svg class="pin night" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12"/><path d="M19.2 16.6A6.4 6.4 0 0 1 11.4 8.8a6.8 6.8 0 1 0 7.8 7.8z"/></svg>`,
   };
 
-  // Destination only. The person's own location never goes into a link.
-  const dirUrl = (pl) => `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(pl.name + ", " + pl.address)}`;
+  // Directions and "Start" hand the trip to the phone's own maps app (Apple Maps on an iPhone, Google Maps elsewhere),
+  // which does live GPS far better than a web page can. Destination only: the person's location never goes into the link.
+  const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const dirUrl = (pl, mode) => {
+    const to = encodeURIComponent(pl.name + ", " + pl.address);
+    return IOS ? `https://maps.apple.com/?daddr=${to}` + (mode ? `&dirflg=${mode === "foot" ? "w" : "d"}` : "")
+      : `https://www.google.com/maps/dir/?api=1&destination=${to}` + (mode ? `&travelmode=${mode === "foot" ? "walking" : "driving"}` : "");
+  };
   const telUrl = (p) => `tel:${p.replace(/\D/g, "")}`;
   const where = (pl) => (pl.area && !pl.address.includes(pl.area) ? `${pl.address}, ${pl.area}` : pl.address);
   const openLine = (x) => (x.minutesLeft <= 45 ? `Closes in ${x.minutesLeft} minutes, at ${Finder.fmtTime(x.closes)}` : `Open until ${Finder.fmtTime(x.closes)}`);
@@ -317,8 +326,9 @@
       const pl = x.place;
       return `<div class="sign"><div><div class="sign-top"><p>Closest open place</p><p class="sign-km">${Finder.fmtDistance(x.km)}</p></div>` +
         `<p class="sign-name">${esc(pl.name)}</p><p class="sign-line">${esc(openLine(x))}<br>${esc(where(pl))}</p>` +
+        (!wayKey ? "" : `<p class="sign-way">${!way ? "Finding the way…" : way.text ? "About " + esc(way.text) : "No route found. The dashed line on the map is straight-line only."}</p>`) +
         (maybe ? `<p class="sign-line">Closer, but call first: <button type="button" class="linkbtn" data-show="${maybe.place.id}">${esc(maybe.place.name)}</button>, ${Finder.fmtDistance(maybe.km)}</p>` : "") +
-        `<p class="sign-acts"><a class="btn" href="${dirUrl(pl)}" target="_blank" rel="noopener">Directions</a>` +
+        `<p class="sign-acts"><a class="btn" href="${dirUrl(pl, way && way.mode)}" target="_blank" rel="noopener">Start in Maps</a>` +
         (pl.phone ? `<a class="btn ghost" href="${telUrl(pl.phone)}">Call</a>` : "") +
         `<button type="button" class="btn ghost" data-show="${pl.id}">Show on map</button></p></div></div>`;
     }
@@ -343,6 +353,8 @@
     if (loc) shelters.sort((a, b) => a.km - b.km);
     for (const x of shelters) info[x.place.id] = { state: "night", line: "", km: x.km };
 
+    wantWay(view === "warm" && loc && s.open.length && s.open[0].km < 80 ? s.open[0].place : null);
+
     // The sign: closest open place once we know where the person is, or a plain warning when nothing is open.
     const soonest = s.open.length ? null : Finder.summarize(PLACES, at, STAT_HOLIDAYS).closed[0];
     const maybe = loc && s.open.length && s.unknown.length && s.unknown[0].km < s.open[0].km ? s.unknown[0] : null;
@@ -366,6 +378,45 @@
     $("v-night").hidden = view !== "night";
     document.querySelectorAll(".views button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === view)));
     drawMap();
+  }
+
+  // ---- The way there: a walking and a driving route to the closest open place, drawn on the map. ----
+  // The routes come from a public OpenStreetMap routing server (routing.openstreetmap.de). It needs the start point,
+  // so this is the one place the person's location leaves the device. The footer says so.
+  // ponytail: a free shared server with no guarantee. If it is slow or down we draw a straight dashed line instead.
+  // A county version should use its own routing service.
+  const ROUTER = "https://routing.openstreetmap.de/routed-";
+  let wayKey = null; // "lat,lng>place" of the route we want
+  let way = null;    // { mode, text, layer } once it has arrived for wayKey
+  // Extra room at the bottom so the map key never sits on top of the destination.
+  const fit = () => ({ paddingTopLeft: [40, 40], paddingBottomRight: [40, wide.matches ? 140 : 100], maxZoom: 16, animate: !calm.matches });
+  const mins = (sec) => { const m = Math.max(1, Math.round(sec / 60)); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
+
+  function wantWay(pl) {
+    const key = pl ? `${loc.lat.toFixed(4)},${loc.lng.toFixed(4)}>${pl.id}` : null;
+    if (key === wayKey) return;
+    wayKey = key;
+    if (way && way.layer) way.layer.remove();
+    way = null;
+    if (key) findWay(key, { lat: loc.lat, lng: loc.lng }, pl);
+  }
+
+  async function findWay(key, from, pl) {
+    const get = (mode) => fetch(`${ROUTER}${mode}/route/v1/driving/${from.lng.toFixed(4)},${from.lat.toFixed(4)};${pl.lng},${pl.lat}?overview=full&geometries=geojson`, { signal: AbortSignal.timeout(8000) })
+      .then((r) => r.json()).then((d) => d.routes[0]).catch(() => null);
+    const [foot, car] = await Promise.all([get("foot"), get("car")]);
+    if (key !== wayKey) return; // the person moved on while we waited
+    const best = foot && (foot.duration <= 45 * 60 || !car) ? foot : car; // draw the walk if it is under 45 minutes
+    const line = best ? best.geometry.coordinates.map(([x, y]) => [y, x]) : [[from.lat, from.lng], [pl.lat, pl.lng]];
+    way = { mode: best ? (best === foot ? "foot" : "car") : null, text: [foot && `${mins(foot.duration)} on foot`, car && `${mins(car.duration)} by car`].filter(Boolean).join(" or ") };
+    if (map) {
+      way.layer = L.featureGroup([
+        L.polyline(line, { color: "#FFFFFF", weight: 9, opacity: 0.9, interactive: false }),
+        L.polyline(line, { color: "#044D66", weight: 5, dashArray: best ? null : "2 10", interactive: false }),
+      ]).addTo(map);
+      map.fitBounds(way.layer.getBounds(), fit());
+    }
+    render();
   }
 
   // ---- Map. An extra: if the library or the tiles fail to load, the list above still works. ----
@@ -404,9 +455,10 @@
       const el = m.getElement();
       if (el) { el.classList.toggle("sel", selected === pl.id); el.title = `${pl.name}${i.line ? ", " + i.line : ""}`; }
     }
-    legend.innerHTML = (view === "warm" ? `<p>${ICON.open}Open now</p><p>${ICON.closed}Closed</p><p>${ICON.unknown}Call first</p>` : `<p>${ICON.night}Overnight shelter</p>`) + (county ? `<p><span class="edge"></span>Strathcona County</p>` : "");
+    legend.innerHTML = (view === "warm" ? `<p>${ICON.open}Open now</p><p>${ICON.closed}Closed</p><p>${ICON.unknown}Call first</p>` : `<p>${ICON.night}Overnight shelter</p>`) + (county ? `<p><span class="edge"></span>Strathcona County</p>` : "") + (way && way.layer ? `<p><span class="wayline"></span>Way to the closest open place</p>` : "");
     if (here) { here.remove(); here = null; }
-    if (loc) here = L.marker([loc.lat, loc.lng], { icon: L.divIcon({ className: "here", iconSize: [18, 18] }), interactive: false, keyboard: false, zIndexOffset: 2000 }).addTo(map);
+    if (loc) here = L.marker([loc.lat, loc.lng], { icon: L.divIcon({ className: "here", iconSize: [18, 18] }), interactive: false, keyboard: false, zIndexOffset: 2000 })
+      .bindTooltip(loc.area ? loc.label : "You", { permanent: true, direction: "top", offset: [0, -8], className: "you" }).addTo(map);
   }
 
   // Frame the map: the whole view, or the person and the closest open place once we know where they are.
@@ -418,8 +470,9 @@
       const near = inView.map((p) => ({ p, km: Finder.distanceKm(loc, p) })).filter((x) => view === "night" || info[x.p.id].state === "open").sort((a, b) => a.km - b.km)[0];
       if (near && near.km < 80) pts = [[loc.lat, loc.lng], [near.p.lat, near.p.lng]];
     }
+    if (view === "warm" && way && way.layer) return map.fitBounds(way.layer.getBounds(), fit());
     if (!loc && view === "warm" && county) return map.fitBounds(county.getBounds(), { paddingTopLeft: [12, 12], paddingBottomRight: [12, wide.matches ? 12 : 64], animate: !calm.matches }); // the whole county, clear of the key
-    if (pts.length) map.fitBounds(pts, { padding: [48, 48], maxZoom: 15, animate: !calm.matches });
+    if (pts.length) map.fitBounds(pts, fit());
   }
 
   function paintSelection() {
