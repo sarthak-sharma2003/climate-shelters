@@ -272,9 +272,11 @@
   </main>
 </div>
 
-<script src="places.js"></script>
-<script src="boundary.js"></script>
-<script src="finder.js"></script>
+<!-- BUMP ?v= ON EVERY CHANGE to these three files. Without it a browser can pair this page with an older saved
+     copy of a script, and the lists come up empty (this happened on 2026-11-15). -->
+<script src="places.js?v=8"></script>
+<script src="boundary.js?v=8"></script>
+<script src="finder.js?v=8"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -369,16 +371,18 @@
     $("nearest").innerHTML = s.open.length ? (loc ? sign(s.open[0], maybe) : "") : sign(null, null, soonest);
 
     $("tally").textContent = `${s.open.length} of ${warmCount} places`;
-    // What the listed places are confirmed for. Anything nobody has confirmed is said plainly, never guessed.
-    const warm = PLACES.filter((p) => p.kind === "warm");
-    const missing = Object.keys(Finder.NEEDS).filter((k) => !warm.some((p) => p.good.includes(k))).map((k) => Finder.NEEDS[k].toLowerCase());
-    $("goodfor").textContent = "Every place here is on the county's cold-weather list." + (missing.length ? ` Not confirmed yet for any place: ${missing.join(", ")}.` : "");
     $("open").innerHTML = s.open.map((x) => row(x.place)).join("");
     $("closed").innerHTML = s.closed.map((x) => row(x.place)).join("");
     $("ask").innerHTML = s.unknown.map((x) => row(x.place)).join("");
     $("none").hidden = s.open.length > 0;
     $("closed-sec").hidden = !s.closed.length;
     $("ask-sec").hidden = !s.unknown.length;
+
+    // Drawn after the lists, so nothing here can ever stop the lists from showing.
+    // What the listed places are confirmed for. Anything nobody has confirmed is said plainly, never guessed.
+    const warm = PLACES.filter((p) => p.kind === "warm");
+    const missing = Object.keys(Finder.NEEDS).filter((k) => !warm.some((p) => p.good.includes(k))).map((k) => Finder.NEEDS[k].toLowerCase());
+    $("goodfor").textContent = "Every place here is on the county's cold-weather list." + (missing.length ? ` Not confirmed yet for any place: ${missing.join(", ")}.` : "");
 
     const bus = Finder.lastBus(at), t = Finder.fmtTime(bus.time);
     const left = bus.minutesLeft >= 60 ? `${Math.floor(bus.minutesLeft / 60)} h ${bus.minutesLeft % 60} min` : `${bus.minutesLeft} minutes`;
