@@ -66,7 +66,10 @@ assert.equal(F.fmtTime(21 * 60), "9 p.m.");
 assert.equal(F.fmtTime(22 * 60 + 45), "10:45 p.m.");
 assert.equal(F.fmtTime(1440), "midnight");
 assert.equal(F.fmtTime(720), "noon");
-assert.deepEqual(F.momentNow(new Date("2026-11-16T03:00:00Z")), { ymd: "2026-11-15", dow: 0, minutes: 20 * 60 });
+// Alberta stays 6 hours behind UTC all year since 2026, so 03:00 UTC is 9 p.m. the evening before, winter and summer.
+// (An earlier version asked the device for Alberta's time zone, and gave 8 p.m. here on a machine with old zone data.)
+assert.deepEqual(F.momentNow(new Date("2026-11-16T03:00:00Z")), { ymd: "2026-11-15", dow: 0, minutes: 21 * 60 });
+assert.deepEqual(F.momentNow(new Date("2026-07-15T03:00:00Z")), { ymd: "2026-07-14", dow: 2, minutes: 21 * 60 });
 
 // Distance: straight-line, Community Centre to Ardrossan Recreation Complex is about 10.5 km.
 const d = F.distanceKm(byId("community-centre"), byId("ardrossan"));

@@ -1,7 +1,7 @@
 // Logic for the warm-place finder. No DOM in here, so `node finder.test.js` can check it.
 // A "moment" is Edmonton wall time: { ymd: "YYYY-MM-DD", dow: 0-6 (0 = Sunday), minutes: 0-1439 }.
 (function (root) {
-  const TZ = "America/Edmonton";
+  const ALBERTA_UTC_HOURS = -6;
   // What a place can be confirmed as a shelter from. A place lists these in its `good` array.
   const NEEDS = { cold: "Cold weather", heat: "Heat", smoke: "Wildfire smoke", power: "Power outage" };
   const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -22,11 +22,14 @@
     return { ymd, dow: dowOf(ymd), minutes: toMin(hm.slice(0, 5)) };
   }
 
-  // Current Edmonton time, whatever the device's own time zone is.
+  // Current Alberta time, whatever the device's own time zone is.
+  // Alberta stopped changing its clocks in 2026 and stays 6 hours behind UTC all year. We use that fixed offset
+  // on purpose instead of asking the device for "America/Edmonton": a phone with out-of-date time zone data
+  // still thinks Alberta falls back in November, and would show every place an hour off all winter.
+  // ponytail: one number. If Alberta ever changes its clocks again, change ALBERTA_UTC_HOURS (or go back to Intl).
   function momentNow(date = new Date()) {
-    const f = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-    const p = Object.fromEntries(f.formatToParts(date).map((x) => [x.type, x.value]));
-    return momentFromLocal(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`);
+    const d = new Date(date.getTime() + ALBERTA_UTC_HOURS * 3600000);
+    return { ymd: d.toISOString().slice(0, 10), dow: d.getUTCDay(), minutes: d.getUTCHours() * 60 + d.getUTCMinutes() };
   }
 
   // [openMin, closeMin], null (closed that day), or undefined (we do not know).
