@@ -72,6 +72,15 @@
     return hit;
   }
 
+  // Which way to go, in plain words: one of eight compass directions from point a to point b.
+  function compass(a, b) {
+    const rad = Math.PI / 180, dLng = (b.lng - a.lng) * rad;
+    const y = Math.sin(dLng) * Math.cos(b.lat * rad);
+    const x = Math.cos(a.lat * rad) * Math.sin(b.lat * rad) - Math.sin(a.lat * rad) * Math.cos(b.lat * rad) * Math.cos(dLng);
+    const deg = (Math.atan2(y, x) / rad + 360) % 360;
+    return ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"][Math.round(deg / 45) % 8];
+  }
+
   function fmtDistance(km) {
     if (km < 0.95) return `${Math.max(1, Math.round(km * 10)) * 100} m`;
     return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`;
@@ -166,7 +175,7 @@
     return `Opens ${day} at ${fmtTime(opens.minutes)}`;
   }
 
-  const api = { DAYS, NEEDS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance, inside, pool, suggestNeed, aqhiRisk, weekLines };
+  const api = { DAYS, NEEDS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance, inside, pool, suggestNeed, aqhiRisk, weekLines, compass };
   root.Finder = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

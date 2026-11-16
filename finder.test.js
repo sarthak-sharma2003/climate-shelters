@@ -126,6 +126,12 @@ assert.deepEqual(F.weekLines(byId("ordze")), ["Mon to Fri: 5:30 a.m. to 7:45 p.m
 assert.deepEqual(F.weekLines(byId("library")), ["Mon to Thu: 9:30 a.m. to 9 p.m.", "Fri: 9:30 a.m. to 8 p.m.", "Sat: 9:30 a.m. to 5 p.m.", "Sun: 11 a.m. to 5 p.m."]);
 assert.deepEqual(F.weekLines(byId("moyer")), []);
 
+// Compass direction, for when there is no connection to draw a route.
+assert.equal(F.compass(from("Sherwood Park"), byId("ardrossan")), "east");
+assert.equal(F.compass(from("Sherwood Park"), byId("moyer")), "north-east");
+assert.equal(F.compass(from("Sherwood Park"), byId("olympiette")), "south-east");
+assert.equal(F.compass(byId("ardrossan"), from("Sherwood Park")), "west");
+
 // Data sanity: every day place has a source, and every hours row is well formed.
 for (const p of PLACES) {
   assert.ok(p.source && p.source.label, p.id);

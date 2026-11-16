@@ -309,7 +309,7 @@
       <details>
         <summary>Sources and privacy</summary>
         <p>Places, shelters and phone numbers: the county's cold-weather card (Oct. 2026). Hours: <a href="https://www.strathcona.ca/recreation-events/recreation-centres/">county facility pages</a> and the <a href="https://sclibrary.ca/locations/central/">library's page</a>, checked <span id="checked"></span>. A place is only shown as a shelter from something the county has confirmed. Holidays with no published hours show as "Call first". Distances are straight-line. Conditions: <a href="https://weather.gc.ca/warnings/index_e.html?prov=ab">Environment Canada</a> (alerts, air quality) and Open-Meteo (temperature), for Sherwood Park.</p>
-        <p>Your location stays on this device, with two exceptions: the route is drawn by routing.openstreetmap.de, and a typed address is looked up by nominatim.openstreetmap.org. Map images come from OpenStreetMap, which can see roughly which area the map shows. This page saves nothing.</p>
+        <p>Your location stays on this device, with two exceptions: the route is drawn by routing.openstreetmap.de, and a typed address is looked up by nominatim.openstreetmap.org. Map images come from OpenStreetMap, which can see roughly which area the map shows. Your last location and route are kept on this device only, so the way still shows with no signal: until the tab closes, or for 12 hours if you added this page to your home screen. "Clear" removes them.</p>
       </details>
     </footer>
   </main>
@@ -319,9 +319,9 @@
 
 <!-- BUMP ?v= ON EVERY CHANGE to these three files. Without it a browser can pair this page with an older saved
      copy of a script, and the lists come up empty (this happened on 2026-11-15). -->
-<script src="places.js?v=13"></script>
-<script src="boundary.js?v=13"></script>
-<script src="finder.js?v=13"></script>
+<script src="places.js?v=14"></script>
+<script src="boundary.js?v=14"></script>
+<script src="finder.js?v=14"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -392,7 +392,7 @@
       const pl = x.place;
       return `<div class="sign"><div><div class="sign-top"><p>${confirmed ? "Closest open" : "Closest open building"}</p><p class="sign-km">${Finder.fmtDistance(x.km)}</p></div>` +
         `<p class="sign-name">${esc(pl.name)}</p><p class="sign-line">${esc(openLine(x))}${confirmed ? "" : `. Not confirmed for ${NEED[need].long}.`}</p>` +
-        (!wayKey ? "" : `<p class="sign-way">${!way ? "Finding the way…" : way.text ? "About " + esc(way.text) : "No route found. The dashed line is straight-line only."}</p>`) +
+        (!wayKey ? "" : `<p class="sign-way">${!way ? "Finding the way…" : way.text ? "About " + esc(way.text) + (way.saved ? " (saved earlier)" : "") : `No route without a connection. Head ${Finder.compass(loc, pl)}, ${Finder.fmtDistance(x.km)} in a straight line.`}</p>`) +
         (maybe ? `<p class="sign-line">Closer, but call first: <button type="button" class="linkbtn" data-show="${maybe.place.id}">${esc(maybe.place.name)}</button>, ${Finder.fmtDistance(maybe.km)}</p>` : "") +
         `<p class="sign-acts"><a class="btn" href="${dirUrl(pl, way && way.mode)}" target="_blank" rel="noopener">Start in Maps</a>` +
         (pl.phone ? `<a class="btn ghost" href="${telUrl(pl.phone)}">Call</a>` : "") +
@@ -502,17 +502,39 @@
     const [foot, car] = await Promise.all([get("foot"), get("car")]);
     if (key !== wayKey) return; // the person moved on while we waited
     const best = foot && (foot.duration <= 45 * 60 || !car) ? foot : car; // draw the walk if it is under 45 minutes
-    const line = best ? best.geometry.coordinates.map(([x, y]) => [y, x]) : [[from.lat, from.lng], [pl.lat, pl.lng]];
-    way = { mode: best ? (best === foot ? "foot" : "car") : null, text: [foot && `${mins(foot.duration)} on foot`, car && `${mins(car.duration)} by car`].filter(Boolean).join(" or ") };
-    if (map) {
-      way.layer = L.featureGroup([
-        L.polyline(line, { color: "#FFFFFF", weight: 9, opacity: 0.9, interactive: false }),
-        L.polyline(line, { color: "#044D66", weight: 5, dashArray: best ? null : "2 10", interactive: false }),
-      ]).addTo(map);
-      map.fitBounds(way.layer.getBounds(), fit());
+    if (best) {
+      way = { key, mode: best === foot ? "foot" : "car", line: best.geometry.coordinates.map(([x, y]) => [y, x]),
+        text: [foot && `${mins(foot.duration)} on foot`, car && `${mins(car.duration)} by car`].filter(Boolean).join(" or ") };
+      keep.write({ loc, way }); // so the way is still here after a reload with no signal
+    } else {
+      const kept = keep.read(); // no answer from the router: use the route saved earlier for this same trip, if there is one
+      way = kept && kept.way && kept.way.key === key ? { ...kept.way, saved: true }
+        : { key, mode: null, text: "", line: [[from.lat, from.lng], [pl.lat, pl.lng]], straight: true };
     }
-    render();
+    render(); // drawMap puts the line on the map
+    frame();
   }
+
+  // ---- Keep the way: the last location and route stay on this device, so they survive a reload with no signal. ----
+  // On a phone that added this page to its home screen they are kept for 12 hours. In an ordinary browser tab they
+  // go when the tab closes, so the next person at a shared computer never sees them.
+  const store = matchMedia("(display-mode: standalone)").matches ? localStorage : sessionStorage;
+  const keep = {
+    read() { try { const k = JSON.parse(store.getItem("way")); return k && Date.now() - k.at < 12 * 3600000 ? k : null; } catch (e) { return null; } },
+    write(v) { try { store.setItem("way", JSON.stringify({ ...v, at: Date.now() })); } catch (e) {} },
+    clear() { try { store.removeItem("way"); } catch (e) {} },
+  };
+
+  // ---- Live dot: once the person shares their location, the dot follows the phone's GPS. GPS needs no data. ----
+  // Only the dot moves. The list order and the route stay as they were, so nothing jumps around while walking.
+  let live = null, watchId = null, following = false;
+  function follow(on) {
+    following = on;
+    if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    if (!on) { live = null; return; }
+    watchId = navigator.geolocation.watchPosition((pos) => { live = [pos.coords.latitude, pos.coords.longitude]; if (here) here.setLatLng(live); }, () => {}, { enableHighAccuracy: true, maximumAge: 5000 });
+  }
+  document.addEventListener("visibilitychange", () => { if (following) { if (document.hidden) { navigator.geolocation.clearWatch(watchId); watchId = null; } else follow(true); } }); // rest the GPS while the page is not on screen
 
   // ---- Map. An extra: if the library or the tiles fail to load, the list above still works. ----
   let map = null, tiles = null, here = null, county = null, legend = null;
@@ -550,9 +572,16 @@
       const el = m.getElement();
       if (el) { el.classList.toggle("sel", selected === pl.id); el.title = `${pl.name}${i.line ? ", " + i.line : ""}`; }
     }
-    legend.innerHTML = (view === "day" ? `<p>${ICON.open}Open now</p><p>${ICON.closed}Closed</p><p>${ICON.unknown}Call first</p>` : `<p>${ICON.night}Overnight shelter</p>`) + (county ? `<p><span class="edge"></span>Strathcona County</p>` : "") + (way && way.layer ? `<p><span class="wayline"></span>Your way</p>` : "");
+    legend.innerHTML = (view === "day" ? `<p>${ICON.open}Open now</p><p>${ICON.closed}Closed</p><p>${ICON.unknown}Call first</p>` : `<p>${ICON.night}Overnight shelter</p>`) + (county ? `<p><span class="edge"></span>Strathcona County</p>` : "") + (way && way.line ? `<p><span class="wayline"></span>Your way</p>` : "");
+    if (way && way.line && !way.layer) {
+      way.layer = L.featureGroup([
+        L.polyline(way.line, { color: "#FFFFFF", weight: 9, opacity: 0.9, interactive: false }),
+        L.polyline(way.line, { color: "#044D66", weight: 5, dashArray: way.straight ? "2 10" : null, interactive: false }),
+      ]);
+    }
+    if (way && way.layer) { if (view === "day") way.layer.addTo(map); else way.layer.remove(); }
     if (here) { here.remove(); here = null; }
-    if (loc) here = L.marker([loc.lat, loc.lng], { icon: L.divIcon({ className: "here", iconSize: [18, 18] }), interactive: false, keyboard: false, zIndexOffset: 2000 })
+    if (loc) here = L.marker(live || [loc.lat, loc.lng], { icon: L.divIcon({ className: "here", iconSize: [18, 18] }), interactive: false, keyboard: false, zIndexOffset: 2000 })
       .bindTooltip(loc.area ? loc.label : "You", { permanent: true, direction: "top", offset: [0, -8], className: "you" }).addTo(map);
   }
 
@@ -591,9 +620,11 @@
 
   // ---- Location: the browser's own, or an area picked from the list ----
   const say = (html) => { $("locmsg").innerHTML = html; };
-  function setLoc(next) {
+  function setLoc(next, restoring) {
     loc = next;
     selected = null;
+    if (!restoring) { if (next) keep.write({ loc: next }); else keep.clear(); }
+    if (!next || next.area) follow(false);
     $("find-label").textContent = loc && !loc.area ? "Update my location" : "Find closest to me";
     if (!loc || !loc.area) $("q").value = "";
     render();
@@ -608,7 +639,7 @@
     if (!navigator.geolocation) return say("This browser cannot share a location. Enter an address instead.");
     say("Finding your location…");
     navigator.geolocation.getCurrentPosition(
-      (pos) => setLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude, label: "your location" }),
+      (pos) => { setLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude, label: "your location" }); follow(true); },
       (err) => say(err.code === 1 ? "Location is blocked for this page. Enter an address instead." : "Your location could not be found. Enter an address instead."),
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
   });
@@ -662,7 +693,9 @@
   const preset = params.get("at");
   if (preset && /^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(preset)) { picker.value = preset; $("time").open = true; }
   $("checked").textContent = `${dateLabel(CHECKED)} ${CHECKED.slice(0, 4)}`;
-  render();
+  const kept = keep.read();
+  if (kept && kept.loc) setLoc(kept.loc, true); // pick up where the person left off, signal or not
+  else render();
   setInterval(render, 60000); // keep "open now" current while the page stays open
 
   // ---- What is happening outside right now. An extra: if the sources do not answer, the strip stays hidden. ----
