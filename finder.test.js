@@ -117,6 +117,12 @@ assert.equal(F.suggestNeed({ feels: 8, aqhi: 3, alerts: ["Fog (advisory)"] }), n
 assert.equal(F.suggestNeed({}), null); // nothing answered: suggest nothing
 assert.deepEqual([1.48, 4, 6.6, 12].map(F.aqhiRisk), ["low risk", "moderate risk", "high risk", "very high risk"]);
 
+// The printed card: a usual week in plain words, with matching days joined.
+assert.deepEqual(F.weekLines(byId("millennium")), ["Mon to Fri: 5 a.m. to 10:30 p.m.", "Sat and Sun: 6 a.m. to 9 p.m."]);
+assert.deepEqual(F.weekLines(byId("ordze")), ["Mon to Fri: 5:30 a.m. to 7:45 p.m.", "Sat and Sun: closed"]);
+assert.deepEqual(F.weekLines(byId("library")), ["Mon to Thu: 9:30 a.m. to 9 p.m.", "Fri: 9:30 a.m. to 8 p.m.", "Sat: 9:30 a.m. to 5 p.m.", "Sun: 11 a.m. to 5 p.m."]);
+assert.deepEqual(F.weekLines(byId("moyer")), []);
+
 // Data sanity: every day place has a source, and every hours row is well formed.
 for (const p of PLACES) {
   assert.ok(p.source && p.source.label, p.id);

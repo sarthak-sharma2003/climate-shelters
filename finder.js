@@ -141,13 +141,29 @@
     return `${h % 12 || 12}${m ? ":" + String(m).padStart(2, "0") : ""} ${h < 12 ? "a.m." : "p.m."}`;
   }
 
+  // A place's usual week in plain words, Monday first, with matching days joined:
+  // ["Mon to Fri: 5 a.m. to 10:30 p.m.", "Sat and Sun: 6 a.m. to 9 p.m."]. Empty when no hours are published.
+  function weekLines(place) {
+    if (!place.hours) return [];
+    const SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], runs = [];
+    for (const d of [1, 2, 3, 4, 5, 6, 0]) {
+      const h = place.hours[d], text = h ? `${fmtTime(toMin(h[0]))} to ${fmtTime(toMin(h[1]))}` : "closed";
+      const last = runs[runs.length - 1];
+      if (last && last.text === text) last.days.push(d); else runs.push({ days: [d], text });
+    }
+    return runs.map((r) => {
+      const n = r.days.length, a = SHORT[r.days[0]], b = SHORT[r.days[n - 1]];
+      return `${n === 1 ? a : n === 2 ? `${a} and ${b}` : `${a} to ${b}`}: ${r.text}`;
+    });
+  }
+
   function fmtOpens(opens) {
     if (!opens) return "No opening listed this week";
     const day = opens.dayOffset === 0 ? "today" : opens.dayOffset === 1 ? "tomorrow" : DAYS[opens.dow];
     return `Opens ${day} at ${fmtTime(opens.minutes)}`;
   }
 
-  const api = { DAYS, NEEDS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance, inside, pool, suggestNeed, aqhiRisk };
+  const api = { DAYS, NEEDS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance, inside, pool, suggestNeed, aqhiRisk, weekLines };
   root.Finder = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -1,0 +1,15 @@
+{
+  "name": "Find a climate shelter (student prototype)",
+  "short_name": "Shelters",
+  "description": "Public buildings in Strathcona County you can shelter in, and which are open now. A student prototype, not an official county app.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#007797",
+  "theme_color": "#007797",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

@@ -1,0 +1,31 @@
+# Runs the finder's self-check on every update, and once a week checks that the pages the hours came from still exist.
+# If either fails, GitHub emails the owner of this repository.
+name: Checks
+on:
+  push:
+  schedule:
+    - cron: "0 15 * * 1" # Mondays, 8 a.m. in Alberta (15:00 UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  self-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node finder.test.js
+
+  source-pages:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node check-sources.js
