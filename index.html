@@ -189,6 +189,9 @@
   dialog p { margin-top: .7rem; }
   .copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; align-items: start; }
   .copy code { background: var(--band); padding: .5rem .6rem; border-radius: 4px; font: .875rem/1.45 ui-monospace, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+  .savemap { background: var(--page); border: 1px solid var(--rule); border-radius: 4px; padding: .3rem .55rem; font-size: .8125rem; line-height: 1.4; }
+  .savemap:empty { display: none; }
+  .savemap .btn { min-height: 2.4rem; padding: .3rem .8rem; font-size: .875rem; margin: -.3rem -.55rem; border-radius: 3px; }
   .offline { margin: 0 calc(var(--pad) * -1); padding: .5rem var(--pad); background: #FFF4E5; color: #5C3600; font-size: .875rem; }
 
   /* ---- Print: not the screen, but a one-page card for a notice board, built from the same data ---- */
@@ -320,7 +323,7 @@
       <p>County staff: <a href="coverage.html">see where the gaps are</a>.</p>
       <details>
         <summary>Sources and privacy</summary>
-        <p>Places, shelters and phone numbers: the county's cold-weather card (Oct. 2026). Hours: <a href="https://www.strathcona.ca/recreation-events/recreation-centres/">county facility pages</a> and the <a href="https://sclibrary.ca/locations/central/">library's page</a>, checked <span id="checked"></span>. A place is only shown as a shelter from something the county has confirmed. Holidays with no published hours show as "Call first". Distances are straight-line. Bus times: Strathcona County Transit's schedule feed, valid to 12 Dec. 2026. Conditions: <a href="https://weather.gc.ca/warnings/index_e.html?prov=ab">Environment Canada</a> (alerts, air quality) and Open-Meteo (temperature), for Sherwood Park.</p>
+        <p>Places, shelters and phone numbers: the county's cold-weather card (Oct. 2026). Hours: <a href="https://www.strathcona.ca/recreation-events/recreation-centres/">county facility pages</a> and the <a href="https://sclibrary.ca/locations/central/">library's page</a>, checked <span id="checked"></span>. A place is only shown as a shelter from something the county has confirmed. Holidays with no published hours show as "Call first". Distances are straight-line. Offline map: OpenStreetMap data, packaged by Protomaps. Bus times: Strathcona County Transit's schedule feed, valid to 12 Dec. 2026. Conditions: <a href="https://weather.gc.ca/warnings/index_e.html?prov=ab">Environment Canada</a> (alerts, air quality) and Open-Meteo (temperature), for Sherwood Park.</p>
         <p>Your location stays on this device, with two exceptions: the route is drawn by routing.openstreetmap.de, and a typed address is looked up by nominatim.openstreetmap.org. Map images come from OpenStreetMap, which can see roughly which area the map shows. Your last location and route are kept on this device only, so the way still shows with no signal: until the tab closes, or for 12 hours if you added this page to your home screen. "Clear" removes them.</p>
       </details>
     </footer>
@@ -343,9 +346,9 @@
 
 <!-- BUMP ?v= ON EVERY CHANGE to these three files. Without it a browser can pair this page with an older saved
      copy of a script, and the lists come up empty (this happened on 2026-11-15). -->
-<script src="places.js?v=18"></script>
-<script src="boundary.js?v=18"></script>
-<script src="finder.js?v=18"></script>
+<script src="places.js?v=19"></script>
+<script src="boundary.js?v=19"></script>
+<script src="finder.js?v=19"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -561,7 +564,7 @@
   document.addEventListener("visibilitychange", () => { if (following) { if (document.hidden) { navigator.geolocation.clearWatch(watchId); watchId = null; } else follow(true); } }); // rest the GPS while the page is not on screen
 
   // ---- Map. An extra: if the library or the tiles fail to load, the list above still works. ----
-  let map = null, tiles = null, here = null, county = null, legend = null;
+  let map = null, tiles = null, here = null, county = null, legend = null, mapNote = null, savedMap = null;
   const markers = {};
   const popup = (id) => {
     const pl = byId[id], i = info[id];
@@ -578,6 +581,12 @@
     const key = L.control({ position: "bottomleft" });
     key.onAdd = () => (legend = L.DomUtil.create("div", "legend"));
     key.addTo(map);
+    if ("caches" in window && location.protocol !== "file:") {
+      const saver = L.control({ position: "topright" });
+      saver.onAdd = () => { mapNote = L.DomUtil.create("div", "savemap"); L.DomEvent.disableClickPropagation(mapNote); mapNote.addEventListener("click", onMapNote); return mapNote; };
+      saver.addTo(map);
+      paintMapNote(false);
+    }
     for (const pl of PLACES) {
       markers[pl.id] = L.marker([pl.lat, pl.lng], { keyboard: true }).bindPopup(() => popup(pl.id)).on("click", () => select(pl.id, true));
     }
@@ -596,6 +605,7 @@
       const el = m.getElement();
       if (el) { el.classList.toggle("sel", selected === pl.id); el.title = `${pl.name}${i.line ? ", " + i.line : ""}`; }
     }
+    if (savedMap) { if (view === "night") tiles.addTo(map); else tiles.remove(); }
     legend.innerHTML = (view === "day" ? `<p>${ICON.open}Open now</p><p>${ICON.closed}Closed</p><p>${ICON.unknown}Call first</p>` : `<p>${ICON.night}Overnight shelter</p>`) + (county ? `<p><span class="edge"></span>Strathcona County</p>` : "") + (way && way.line ? `<p><span class="wayline"></span>Your way</p>` : "");
     if (way && way.line && !way.layer) {
       way.layer = L.featureGroup([
@@ -771,7 +781,46 @@
   }
   loadNow();
   setInterval(loadNow, 15 * 60000);
-  function mapReady() { initMap(); render(); frame(); }
+  function mapReady() { initMap(); render(); frame(); useSavedMap(); }
+
+  // ---- The county map, saved on the phone. One 11 MB file holds the roads, street names and buildings of the whole county. ----
+  // It is downloaded only when the person taps "Save map for offline", because many people have little data.
+  // After that the map is drawn from the saved file: no signal needed and no data used.
+  // The file is cut from OpenStreetMap data packaged by Protomaps (both open), with: pmtiles extract <daily build> --bbox=... --maxzoom=14
+  const MAP_FILE = "county-map.pmtiles", MAP_CACHE = "shelters-map-v1", MAP_SIZE = "11 MB";
+  const COUNTY_BOX = [[53.33, -113.45], [53.92, -112.8]];
+  const loadScript = (src) => new Promise((ok, fail) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = fail; document.head.append(s); });
+  function paintMapNote(saved, text) {
+    if (!mapNote) return;
+    mapNote.innerHTML = text || (saved ? `Map saved on this device. <button type="button" class="linkbtn" id="unsave">Remove</button>` : `<button type="button" class="btn" id="savemap">Save map for offline (${MAP_SIZE})</button>`);
+  }
+  async function useSavedMap() {
+    if (!map || !mapNote || savedMap) return;
+    try {
+      const hit = await (await caches.open(MAP_CACHE)).match(MAP_FILE);
+      if (!hit) return;
+      await loadScript("https://unpkg.com/pmtiles@4.5.0/dist/pmtiles.js");
+      await loadScript("https://unpkg.com/protomaps-leaflet@5.1.0/dist/protomaps-leaflet.js");
+      const file = new File([await hit.blob()], MAP_FILE);
+      savedMap = protomapsL.leafletLayer({ url: new pmtiles.PMTiles(new pmtiles.FileSource(file)), flavor: "light", lang: "en", maxDataZoom: 14, bounds: COUNTY_BOX,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://protomaps.com">Protomaps</a>' }).addTo(map);
+      paintMapNote(true);
+      drawMap();
+    } catch (e) { paintMapNote(false); } // the saved copy could not be read: keep the online map
+  }
+  async function onMapNote(e) {
+    if (e.target.id === "savemap") {
+      paintMapNote(false, "Saving the map…");
+      try {
+        const res = await fetch(MAP_FILE);
+        if (!res.ok) throw new Error(res.status);
+        await (await caches.open(MAP_CACHE)).put(MAP_FILE, res);
+        if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); // ask the browser not to clear it
+        await useSavedMap();
+      } catch (err) { paintMapNote(false, `Could not save the map. <button type="button" class="linkbtn" id="savemap">Try again</button>`); }
+    }
+    if (e.target.id === "unsave") { await caches.delete(MAP_CACHE); location.reload(); }
+  }
 
   // ---- The printed card: one page for a notice board or a front desk, for people with no phone or no data. ----
   // qr.svg is a fixed picture of the page's address, so printing needs no outside service.
