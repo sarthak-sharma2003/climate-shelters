@@ -87,19 +87,37 @@ assert.ok(s.open[0].km > 15); // nothing confirmed open within 15 km of Josephbu
 
 // Every pin is where it should be: warm places inside the county, shelters inside Edmonton.
 const inBox = (p, [s0, n0, w0, e0]) => p.lat > s0 && p.lat < n0 && p.lng > w0 && p.lng < e0;
-for (const p of PLACES) assert.ok(inBox(p, p.kind === "warm" ? [53.35, 53.9, -113.4, -112.8] : [53.45, 53.65, -113.7, -113.4]), p.id);
+for (const p of PLACES) assert.ok(inBox(p, p.kind === "day" ? [53.35, 53.9, -113.4, -112.8] : [53.45, 53.65, -113.7, -113.4]), p.id);
 for (const a of AREAS) assert.ok(inBox(a, [53.35, 53.9, -113.4, -112.8]), a.name);
 
 // The county outline: every warm place and every area in the picker is inside it, no Edmonton shelter is,
 // and neither is Camrose (where this may well be demoed from).
-for (const p of PLACES) assert.equal(F.inside(p, COUNTY), p.kind === "warm", p.id);
+for (const p of PLACES) assert.equal(F.inside(p, COUNTY), p.kind === "day", p.id);
 for (const a of AREAS) assert.ok(F.inside(a, COUNTY), a.name);
 assert.equal(F.inside({ lat: 53.0167, lng: -112.8236 }, COUNTY), false);
 
 // What a place is good for: every warm place lists at least one need, and only needs the page knows.
-for (const p of PLACES.filter((x) => x.kind === "warm")) assert.ok(p.good.length && p.good.every((g) => g in F.NEEDS), p.id);
+for (const p of PLACES.filter((x) => x.kind === "day")) assert.ok(p.good.length && p.good.every((g) => g in F.NEEDS), p.id);
 
-// Data sanity: every warm place has a source, and every hours row is well formed.
+// The pool for a need: cold is confirmed for all 12. Nothing is confirmed for heat, so every day place comes back
+// flagged as not confirmed. Once one place is confirmed for heat, only that place is in the pool.
+assert.deepEqual([F.pool(PLACES, "cold").list.length, F.pool(PLACES, "cold").confirmed], [12, true]);
+assert.deepEqual([F.pool(PLACES, "heat").list.length, F.pool(PLACES, "heat").confirmed], [12, false]);
+const withHeat = PLACES.map((p) => (p.id === "millennium" ? { ...p, good: ["cold", "heat"] } : p));
+assert.deepEqual(F.pool(withHeat, "heat").list.map((p) => p.id), ["millennium"]);
+assert.equal(F.pool(withHeat, "heat").confirmed, true);
+
+// What the page opens on: an alert wins, then smoke, then how it feels outside. A mild day suggests nothing.
+assert.equal(F.suggestNeed({ feels: -42, aqhi: 2, alerts: ["Extreme cold (warning)"] }), "cold");
+assert.equal(F.suggestNeed({ feels: 24, aqhi: 9, alerts: [] }), "smoke");
+assert.equal(F.suggestNeed({ feels: 31, aqhi: 9, alerts: ["Heat (warning)"] }), "heat"); // the alert outranks the smoke
+assert.equal(F.suggestNeed({ feels: -20 }), "cold");
+assert.equal(F.suggestNeed({ feels: 33, aqhi: 3 }), "heat");
+assert.equal(F.suggestNeed({ feels: 8, aqhi: 3, alerts: ["Fog (advisory)"] }), null);
+assert.equal(F.suggestNeed({}), null); // nothing answered: suggest nothing
+assert.deepEqual([1.48, 4, 6.6, 12].map(F.aqhiRisk), ["low risk", "moderate risk", "high risk", "very high risk"]);
+
+// Data sanity: every day place has a source, and every hours row is well formed.
 for (const p of PLACES) {
   assert.ok(p.source && p.source.label, p.id);
   for (const h of [...(p.hours || []), ...Object.values(p.exceptions || {})]) {

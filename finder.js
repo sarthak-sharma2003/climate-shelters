@@ -74,13 +74,42 @@
     return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`;
   }
 
-  // Warm places grouped for the page.
+  // Which need the page should open on, given what is happening outside. An official alert wins, then smoke,
+  // then how the temperature feels. now: { feels, aqhi, alerts: ["Extreme cold (warning)", ...] }, any part may be missing.
+  // Returns a NEEDS key, or null when nothing stands out.
+  // ponytail: plain thresholds (feels -15 or colder, feels 29 or hotter, air quality 7 or worse). Tune them with the county.
+  function suggestNeed(now) {
+    const alerts = (now.alerts || []).join(" ").toLowerCase();
+    if (/cold|blizzard|winter storm/.test(alerts)) return "cold";
+    if (/heat/.test(alerts)) return "heat";
+    if (/air quality|smoke/.test(alerts)) return "smoke";
+    if (Math.round(now.aqhi) >= 7) return "smoke";
+    if (now.feels <= -15) return "cold";
+    if (now.feels >= 29) return "heat";
+    return null;
+  }
+
+  // The health-risk band Environment Canada gives each Air Quality Health Index value.
+  function aqhiRisk(v) {
+    const n = Math.round(v);
+    return n >= 11 ? "very high risk" : n >= 7 ? "high risk" : n >= 4 ? "moderate risk" : "low risk";
+  }
+
+  // Day places confirmed as a shelter from `need`. If nobody has confirmed any, every day place comes back with
+  // confirmed: false, so the page can list public buildings and say so, instead of showing an empty screen.
+  function pool(places, need) {
+    const day = places.filter((p) => p.kind === "day");
+    const list = day.filter((p) => (p.good || []).includes(need));
+    return list.length ? { list, confirmed: true } : { list: day, confirmed: false };
+  }
+
+  // Day places grouped for the page.
   // With a `from` point: every group is closest first, and each item carries `km`.
   // Without one: open is longest-open first, closed is soonest-opening first.
   function summarize(places, at, holidays = [], from = null) {
     const out = { open: [], closed: [], unknown: [] };
     for (const place of places) {
-      if (place.kind !== "warm") continue;
+      if (place.kind !== "day") continue;
       const s = status(place, at, holidays);
       out[s.state].push({ place, ...s, km: from ? distanceKm(from, place) : null });
     }
@@ -118,7 +147,7 @@
     return `Opens ${day} at ${fmtTime(opens.minutes)}`;
   }
 
-  const api = { DAYS, NEEDS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance, inside };
+  const api = { DAYS, NEEDS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance, inside, pool, suggestNeed, aqhiRisk };
   root.Finder = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

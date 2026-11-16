@@ -1,9 +1,9 @@
-// Data for the warm-place finder. Edit this file to update hours.
+// Data for the climate shelter finder. Edit this file to update hours.
 //
 // TO ADD A PLACE: copy one { ... } block inside PLACES, change the details, and add lat and lng to it
 // (in Google Maps, right-click the building and click the two numbers to copy them).
 // Save, and it shows up on the map, in the list and in "Find closest". Nothing else needs changing.
-// kind: "warm" = somewhere to warm up, listed with its hours. "overnight" = an overnight shelter.
+// kind: "day" = a building people can shelter in while it is open, listed with its hours. "overnight" = an overnight shelter.
 // good: what the place is CONFIRMED as a shelter from: "cold", "heat", "smoke", "power" (a power outage).
 //       Leave it out and the place counts for cold only. Add e.g. good: ["cold", "heat"] once the county confirms it.
 // Run `node finder.test.js` afterwards: it fails if a pin lands outside the county or the hours are mistyped.
@@ -31,28 +31,28 @@ const CARD = { label: "Strathcona County cold-weather card, updated Oct. 2026" }
 const PLACES = [
   // ---- Daytime warm places named on the county's cold-weather card ----
   {
-    id: "community-centre", kind: "warm", name: "Community Centre", area: "Sherwood Park",
+    id: "community-centre", kind: "day", name: "Community Centre", area: "Sherwood Park",
     address: "401 Festival Lane, Sherwood Park", phone: "780-410-8505",
     note: "Use the main north doors.",
     hours: wk(["07:30", "21:00"], ["08:00", "18:00"], ["10:00", "18:00"]),
     source: { label: "County page", url: "https://www.strathcona.ca/community-families/community-facilities/community-centre-county-hall/" },
   },
   {
-    id: "library", kind: "warm", name: "Strathcona County Library", area: "Sherwood Park",
+    id: "library", kind: "day", name: "Strathcona County Library", area: "Sherwood Park",
     address: "401 Festival Lane, Sherwood Park", phone: "780-410-8600",
     hours: [["11:00", "17:00"], ["09:30", "21:00"], ["09:30", "21:00"], ["09:30", "21:00"], ["09:30", "21:00"], ["09:30", "20:00"], ["09:30", "17:00"]],
     exceptions: { "2026-12-24": null, "2026-12-25": null, "2026-12-26": null, "2026-12-27": null, "2026-12-31": ["09:30", "17:00"], "2027-01-01": null },
     source: { label: "Library page", url: "https://sclibrary.ca/locations/central/" },
   },
   {
-    id: "bethel", kind: "warm", name: "Bethel Transit Terminal", area: "Sherwood Park",
+    id: "bethel", kind: "day", name: "Bethel Transit Terminal", area: "Sherwood Park",
     address: "650 Bethel Drive, Sherwood Park",
     note: "Heated, staffed building.",
     hours: wk(["05:30", "22:45"], ["07:00", "22:45"], ["08:00", "18:45"]),
     source: { label: "County page", url: "https://www.strathcona.ca/transportation-roads/transportation/bus-terminals/" },
   },
   {
-    id: "ordze", kind: "warm", name: "Ordze Transit Centre", area: "Sherwood Park",
+    id: "ordze", kind: "day", name: "Ordze Transit Centre", area: "Sherwood Park",
     address: "970 Ordze Road, Sherwood Park",
     note: "Heated indoor waiting area. No staff on site.",
     hours: wk(["05:30", "19:45"], null, null),
@@ -61,7 +61,7 @@ const PLACES = [
 
   // ---- Recreation centre lobbies and common areas (also named on the card) ----
   {
-    id: "millennium", kind: "warm", name: "Millennium Place", area: "Sherwood Park",
+    id: "millennium", kind: "day", name: "Millennium Place", area: "Sherwood Park",
     address: "2000 Premier Way, Sherwood Park", phone: "780-416-3300",
     note: "Lobby and common areas.",
     hours: wk(["05:00", "22:30"], ["06:00", "21:00"], ["06:00", "21:00"]),
@@ -69,7 +69,7 @@ const PLACES = [
     source: { label: "County page", url: REC + "millennium-place/" },
   },
   {
-    id: "glen-allan", kind: "warm", name: "Glen Allan Recreation Complex", area: "Sherwood Park",
+    id: "glen-allan", kind: "day", name: "Glen Allan Recreation Complex", area: "Sherwood Park",
     address: "199 Georgian Way, Sherwood Park", phone: "780-467-4404",
     note: "Lobby and common areas.",
     hours: wk(["05:30", "22:00"], ["06:00", "21:00"], ["06:00", "21:00"]),
@@ -77,7 +77,7 @@ const PLACES = [
     source: { label: "County page", url: REC + "glen-allan-recreation-complex/" },
   },
   {
-    id: "ardrossan", kind: "warm", name: "Ardrossan Recreation Complex", area: "Ardrossan",
+    id: "ardrossan", kind: "day", name: "Ardrossan Recreation Complex", area: "Ardrossan",
     address: "80 1 Avenue, Ardrossan", phone: "780-400-2084",
     note: "Lobby and common areas.",
     hours: wk(["05:30", "22:00"], ["06:00", "21:00"], ["06:00", "21:00"]),
@@ -85,7 +85,7 @@ const PLACES = [
     source: { label: "County page", url: REC + "ardrossan-recreation-complex/" },
   },
   {
-    id: "emerald-hills", kind: "warm", name: "Emerald Hills Leisure Centre", area: "Sherwood Park",
+    id: "emerald-hills", kind: "day", name: "Emerald Hills Leisure Centre", area: "Sherwood Park",
     address: "3555 Emerald Drive, Sherwood Park", phone: "780-464-2112",
     note: "Hours can change with bookings. Call first.",
     hours: wk(["05:30", "21:00"], ["07:00", "19:00"], ["07:00", "16:30"]),
@@ -93,14 +93,14 @@ const PLACES = [
     source: { label: "County page", url: REC + "emerald-hills-leisure-centre/" },
   },
   {
-    id: "kinsmen", kind: "warm", name: "Kinsmen Leisure Centre", area: "Sherwood Park",
+    id: "kinsmen", kind: "day", name: "Kinsmen Leisure Centre", area: "Sherwood Park",
     address: "2001 Oak Street, Sherwood Park", phone: "780-400-3866",
     note: "Hours can change with bookings. Call first.",
     hours: [["07:00", "18:00"], ["06:30", "21:00"], ["06:30", "21:00"], ["06:30", "21:00"], ["06:30", "21:00"], ["06:30", "19:00"], ["07:00", "19:00"]],
     source: { label: "County page", url: REC + "kinsmen-leisure-centre/" },
   },
   {
-    id: "sp-arena", kind: "warm", name: "Sherwood Park Arena and Sports Centre", area: "Sherwood Park",
+    id: "sp-arena", kind: "day", name: "Sherwood Park Arena and Sports Centre", area: "Sherwood Park",
     address: "2015 Oak Street, Sherwood Park", phone: "780-893-6680",
     // The county page lists 6 a.m. to midnight (September to mid-May), but ties the hours to bookings.
     // Kept out of "open now" until the county confirms the lobby is open to the public at those times.
@@ -110,13 +110,13 @@ const PLACES = [
     source: { label: "County page", url: REC + "sherwood-park-arena-and-sports-centre/" },
   },
   {
-    id: "moyer", kind: "warm", name: "Moyer Recreation Centre", area: "Josephburg",
+    id: "moyer", kind: "day", name: "Moyer Recreation Centre", area: "Josephburg",
     address: "4 - 54569 Range Road 215", phone: "780-998-7022",
     hours: null,
     source: { label: "County page", url: REC + "moyer-recreation-centre/" },
   },
   {
-    id: "olympiette", kind: "warm", name: "Strathcona Olympiette Centre", area: "Fultonvale",
+    id: "olympiette", kind: "day", name: "Strathcona Olympiette Centre", area: "Fultonvale",
     address: "25 - 52029 Range Road 224", phone: "780-400-3805",
     hours: null,
     source: { label: "County page", url: REC + "strathcona-olympiette-centre/" },
@@ -168,7 +168,7 @@ const COORDS = {
 for (const p of PLACES) if (COORDS[p.id]) [p.lat, p.lng] = COORDS[p.id]; // a new place can carry its own lat and lng instead
 
 // Every warm place here comes from the county's cold-weather card, so cold is the only thing confirmed so far.
-for (const p of PLACES) if (p.kind === "warm" && !p.good) p.good = ["cold"];
+for (const p of PLACES) if (p.kind === "day" && !p.good) p.good = ["cold"];
 
 // Hamlet names the address search answers without going online: Sherwood Park and the county's hamlets.
 const AREAS = [
