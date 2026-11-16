@@ -319,9 +319,9 @@
 
 <!-- BUMP ?v= ON EVERY CHANGE to these three files. Without it a browser can pair this page with an older saved
      copy of a script, and the lists come up empty (this happened on 2026-11-15). -->
-<script src="places.js?v=12"></script>
-<script src="boundary.js?v=12"></script>
-<script src="finder.js?v=12"></script>
+<script src="places.js?v=13"></script>
+<script src="boundary.js?v=13"></script>
+<script src="finder.js?v=13"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -381,7 +381,8 @@
       (i.line ? `<p class="status">${esc(i.line)}</p>` : "") +
       `<p class="more">${esc(where(pl))}${pl.note ? "<br>" + esc(pl.note) : ""}${pl.phone ? "<br>" + esc(pl.phone) : ""}</p>` +
       `<p class="acts"><a class="go" href="${dirUrl(pl)}" target="_blank" rel="noopener">Directions</a>` +
-      (pl.phone ? `<a href="${telUrl(pl.phone)}" aria-label="Call ${esc(pl.name)}">Call</a>` : "") + `</p>` +
+      (pl.phone ? `<a href="${telUrl(pl.phone)}" aria-label="Call ${esc(pl.name)}">Call</a>` : "") +
+      `<button type="button" class="linkbtn" data-send="${pl.id}" aria-label="Send ${esc(pl.name)} to a phone">Send</button></p>` +
       `</div></li>`;
   }
 
@@ -394,11 +395,26 @@
         (!wayKey ? "" : `<p class="sign-way">${!way ? "Finding the way…" : way.text ? "About " + esc(way.text) : "No route found. The dashed line is straight-line only."}</p>`) +
         (maybe ? `<p class="sign-line">Closer, but call first: <button type="button" class="linkbtn" data-show="${maybe.place.id}">${esc(maybe.place.name)}</button>, ${Finder.fmtDistance(maybe.km)}</p>` : "") +
         `<p class="sign-acts"><a class="btn" href="${dirUrl(pl, way && way.mode)}" target="_blank" rel="noopener">Start in Maps</a>` +
-        (pl.phone ? `<a class="btn ghost" href="${telUrl(pl.phone)}">Call</a>` : "") + `</p></div></div>`;
+        (pl.phone ? `<a class="btn ghost" href="${telUrl(pl.phone)}">Call</a>` : "") +
+        `<button type="button" class="btn ghost" data-send="${pl.id}">Send</button></p></div></div>`;
     }
     return `<div class="sign dark"><div><p class="sign-name">Nothing is open right now</p>` +
       (soonest ? `<p class="sign-line">Soonest: ${esc(soonest.place.name)}. ${esc(Finder.fmtOpens(soonest.opens))}</p>` : "") +
       `<p class="sign-acts"><button type="button" class="btn" data-goto="night">Overnight shelters</button><a class="btn ghost" href="tel:211">Call 211</a></p></div></div>`;
+  }
+
+  // ---- Send to phone: the essentials as one short text, so they are still there when the signal is gone. ----
+  // The phone's own share sheet sends it (Messages, WhatsApp, Notes). Nothing goes through this page.
+  function sendText(pl) {
+    const i = info[pl.id], dot = (t) => t.replace(/\.$/, "") + ".";
+    const who = pl.only ? { men: "Men only.", women: "Women only.", youth: "Youth." }[pl.only] : "";
+    return [dot(`${pl.name}, ${where(pl)}`), who, i.line ? dot(i.line) : "", pl.note ? dot(pl.note) : "", pl.phone ? dot(pl.phone) : "",
+      `Map: https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pl.name + ", " + pl.address)}`].filter(Boolean).join(" ");
+  }
+  async function send(btn) {
+    const text = sendText(byId[btn.dataset.send]);
+    if (navigator.share) return navigator.share({ text }).catch(() => {}); // closing the share sheet is not an error
+    try { await navigator.clipboard.writeText(text); btn.textContent = "Copied"; } catch (e) { prompt("Copy this:", text); }
   }
 
   function render() {
@@ -621,9 +637,10 @@
   function setView(v) { view = v; selected = null; if (map) map.closePopup(); render(); frame(); }
 
   document.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-show], [data-goto], [data-v], [data-f], [data-n], #clear");
+    const t = e.target.closest("[data-send], [data-show], [data-goto], [data-v], [data-f], [data-n], #clear");
     if (!t) return;
     if (t.id === "clear") setLoc(null);
+    else if (t.dataset.send) send(t);
     else if (t.dataset.show) select(t.dataset.show, false);
     else if (t.dataset.goto) { setView(t.dataset.goto); document.querySelector(".views").scrollIntoView({ block: "start", behavior: calm.matches ? "auto" : "smooth" }); }
     else if (t.dataset.v) setView(t.dataset.v);
