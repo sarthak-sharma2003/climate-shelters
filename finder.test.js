@@ -29,6 +29,11 @@ assert.deepEqual(ids(s.open), []);
 assert.equal(F.lastBus(at("2026-11-19T23:30")).gone, true);
 assert.equal(F.lastBus(at("2026-11-19T22:15")).minutesLeft, 60);
 assert.equal(F.lastBus(at("2026-11-20T02:00")).gone, true);
+// Sunday's last bus is 7:15 p.m., four hours earlier than the county's card says.
+assert.deepEqual(F.lastBus(at("2026-11-22T18:15")), { gone: false, minutesLeft: 60, time: 19 * 60 + 15 });
+assert.equal(F.lastBus(at("2026-11-22T20:00")).gone, true);
+// Early Monday, before the first bus: the one that left was Sunday's, at 7:15 p.m.
+assert.deepEqual(F.lastBus(at("2026-11-23T02:00")), { gone: true, minutesLeft: 0, time: 19 * 60 + 15 });
 
 // Edges: closing time itself is closed; opening time itself is open; one minute left counts as open.
 assert.equal(st("community-centre", "2026-11-18T21:00").state, "closed");
@@ -134,6 +139,17 @@ assert.equal(F.compass(byId("ardrossan"), from("Sherwood Park")), "west");
 
 // The open data feed is built from this same data. If places.js changed and the feed was not rebuilt, fail.
 assert.deepEqual(JSON.parse(require("node:fs").readFileSync(__dirname + "/shelters.json", "utf8")), require("./build-feed.js").feed(), "run: node build-feed.js");
+
+// The coverage page. In an ordinary week nothing with published hours is open for 47.5 hours:
+// four weeknights of 10:45 p.m. to 5 a.m., Friday and Saturday nights to 6 a.m., and Sunday from 9 p.m. to Monday 5 a.m.
+assert.equal(F.weekGrid(PLACES).flat().filter((n) => n === 0).length / 4, 47.5);
+// Drive-time coverage: Ardrossan is inside its own complex's 10-minute area, and South Cooking Lake is inside none.
+const { COVERAGE } = require("./coverage-data.js");
+const near = (name) => PLACES.filter((p) => p.kind === "day" && p.hours).some((p) => F.inside(from(name), COVERAGE.areas[p.id]));
+assert.equal(near("Ardrossan"), true);
+assert.equal(near("South Cooking Lake"), false);
+assert.equal(near("Josephburg"), false); // Moyer is there, but its hours are not confirmed
+assert.equal(COVERAGE.totals.all.people, COVERAGE.totals.rural.people + COVERAGE.totals.urban.people);
 
 // Data sanity: every day place has a source, and every hours row is well formed.
 for (const p of PLACES) {

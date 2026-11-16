@@ -6,10 +6,14 @@
   const NEEDS = { cold: "Cold weather", heat: "Heat", smoke: "Wildfire smoke", power: "Power outage" };
   const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-  // ponytail: one fixed time taken from the county's card, not a transit schedule.
-  // Sunday and holiday service may end earlier. Replace with the transit feed if the county shares one.
-  const LAST_BUS = 23 * 60 + 15;
-  const BUSES_RESUME = 5 * 60; // before this we still say the last bus has gone
+  // Last and first county bus from Bethel Transit Terminal into Edmonton, by day of the week (index 0 = Sunday).
+  // Worked out from Strathcona County Transit's own schedule feed (the regional GTFS file the county's open data
+  // page links to), version 261023, valid 23 Oct to 12 Dec 2026: the last trip of the day that leaves Bethel or
+  // Ordze and then stops in Edmonton. The county's cold-weather card says 11:15 p.m. for every day; Sunday is 7:15 p.m.
+  // ponytail: copied in by hand from one feed version. Redo it when the schedule changes (each season), or read the feed
+  // automatically. Holiday service is not in here: the page tells people it differs.
+  const LAST_BUS = [19 * 60 + 15, 23 * 60 + 15, 23 * 60 + 15, 23 * 60 + 15, 23 * 60 + 15, 23 * 60 + 15, 23 * 60 + 15];
+  const FIRST_BUS = [8 * 60 + 15, 5 * 60 + 40, 5 * 60 + 40, 5 * 60 + 40, 5 * 60 + 40, 5 * 60 + 40, 7 * 60 + 15];
 
   const toMin = (s) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
   const utc = (ymd) => { const [y, m, d] = ymd.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)); };
@@ -132,9 +136,11 @@
     return out;
   }
 
+  // Has today's last bus to Edmonton gone? Before the first bus of the morning, the one that left was last night's.
   function lastBus(at) {
-    const gone = at.minutes >= LAST_BUS || at.minutes < BUSES_RESUME;
-    return { gone, minutesLeft: gone ? 0 : LAST_BUS - at.minutes, time: LAST_BUS };
+    const early = at.minutes < FIRST_BUS[at.dow], last = LAST_BUS[at.dow];
+    const gone = early || at.minutes >= last;
+    return { gone, minutesLeft: gone ? 0 : last - at.minutes, time: early ? LAST_BUS[(at.dow + 6) % 7] : last };
   }
 
   // filter: "all" | "men" | "women" | "youth" | "pets"
@@ -169,13 +175,21 @@
     });
   }
 
+  // How many of the places with published hours are open at each quarter hour of an ordinary week.
+  // Returns 7 rows, Monday first, of 96 counts. Dated exceptions and holidays are left out: this is the usual week.
+  function weekGrid(places) {
+    const pool = places.filter((p) => p.kind === "day" && p.hours);
+    return [1, 2, 3, 4, 5, 6, 0].map((dow) => Array.from({ length: 96 }, (_, q) =>
+      pool.filter((p) => { const h = p.hours[dow]; return h && q * 15 >= toMin(h[0]) && q * 15 < toMin(h[1]); }).length));
+  }
+
   function fmtOpens(opens) {
     if (!opens) return "No opening listed this week";
     const day = opens.dayOffset === 0 ? "today" : opens.dayOffset === 1 ? "tomorrow" : DAYS[opens.dow];
     return `Opens ${day} at ${fmtTime(opens.minutes)}`;
   }
 
-  const api = { DAYS, NEEDS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance, inside, pool, suggestNeed, aqhiRisk, weekLines, compass };
+  const api = { DAYS, NEEDS, LAST_BUS, momentFromLocal, momentNow, status, summarize, lastBus, shelterMatches, fmtTime, fmtOpens, distanceKm, fmtDistance, inside, pool, suggestNeed, aqhiRisk, weekLines, compass, weekGrid };
   root.Finder = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -283,7 +283,7 @@
     <div id="v-night" hidden>
       <div class="bus">
         <strong id="bus"></strong>
-        <p>Sunday and holiday buses may stop earlier. Call the shelter first.</p>
+        <p>11:15 p.m. Monday to Saturday, 7:15 p.m. Sunday. Holiday service differs. Call the shelter first.</p>
       </div>
       <section class="grp" aria-labelledby="h-night">
         <div class="gh"><h2 id="h-night">Overnight shelters</h2><p>All in Edmonton</p></div>
@@ -305,6 +305,7 @@
         <li><a href="tel:211">211</a><p>Help finding services. 24 hours.</p></li>
         <li><a href="tel:7804644044">780-464-4044</a><p>Family and Community Services. Weekdays.</p></li>
         <li><a href="tel:7804677741">780-467-7741</a><p>Worried about someone outside. RCMP non-emergency, 24 hours.</p></li>
+        <li><a href="https://www.alberta.ca/alberta-emergency-alert" target="_blank" rel="noopener">Evacuating?</a><p>This page does not cover evacuations. Follow Alberta Emergency Alert.</p></li>
       </ul>
     </section>
 
@@ -316,9 +317,10 @@
     <footer>
       <p>Student prototype for a University of Alberta course. Not run or approved by Strathcona County.</p>
       <p><button type="button" class="linkbtn" id="print">Print a one-page card</button></p>
+      <p>County staff: <a href="coverage.html">see where the gaps are</a>.</p>
       <details>
         <summary>Sources and privacy</summary>
-        <p>Places, shelters and phone numbers: the county's cold-weather card (Oct. 2026). Hours: <a href="https://www.strathcona.ca/recreation-events/recreation-centres/">county facility pages</a> and the <a href="https://sclibrary.ca/locations/central/">library's page</a>, checked <span id="checked"></span>. A place is only shown as a shelter from something the county has confirmed. Holidays with no published hours show as "Call first". Distances are straight-line. Conditions: <a href="https://weather.gc.ca/warnings/index_e.html?prov=ab">Environment Canada</a> (alerts, air quality) and Open-Meteo (temperature), for Sherwood Park.</p>
+        <p>Places, shelters and phone numbers: the county's cold-weather card (Oct. 2026). Hours: <a href="https://www.strathcona.ca/recreation-events/recreation-centres/">county facility pages</a> and the <a href="https://sclibrary.ca/locations/central/">library's page</a>, checked <span id="checked"></span>. A place is only shown as a shelter from something the county has confirmed. Holidays with no published hours show as "Call first". Distances are straight-line. Bus times: Strathcona County Transit's schedule feed, valid to 12 Dec. 2026. Conditions: <a href="https://weather.gc.ca/warnings/index_e.html?prov=ab">Environment Canada</a> (alerts, air quality) and Open-Meteo (temperature), for Sherwood Park.</p>
         <p>Your location stays on this device, with two exceptions: the route is drawn by routing.openstreetmap.de, and a typed address is looked up by nominatim.openstreetmap.org. Map images come from OpenStreetMap, which can see roughly which area the map shows. Your last location and route are kept on this device only, so the way still shows with no signal: until the tab closes, or for 12 hours if you added this page to your home screen. "Clear" removes them.</p>
       </details>
     </footer>
@@ -341,9 +343,9 @@
 
 <!-- BUMP ?v= ON EVERY CHANGE to these three files. Without it a browser can pair this page with an older saved
      copy of a script, and the lists come up empty (this happened on 2026-11-15). -->
-<script src="places.js?v=15"></script>
-<script src="boundary.js?v=15"></script>
-<script src="finder.js?v=15"></script>
+<script src="places.js?v=18"></script>
+<script src="boundary.js?v=18"></script>
+<script src="finder.js?v=18"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -726,25 +728,30 @@
   // ?sim=cold, ?sim=heat or ?sim=smoke fakes a day, for showing how the page reacts. It is labelled on screen.
   const HERE = { lat: 53.5257, lng: -113.2966 };
   const SIM = {
-    cold: { temp: -31, feels: -42, aqhi: 2, alerts: ["Extreme cold (warning)"] },
-    heat: { temp: 33, feels: 36, aqhi: 4, alerts: ["Heat (warning)"] },
-    smoke: { temp: 24, feels: 24, aqhi: 9, alerts: ["Air quality (warning)"] },
+    cold: { temp: -31, feels: -42, aqhi: 2, alerts: ["Extreme cold (warning)"], tonight: -46 },
+    heat: { temp: 33, feels: 36, aqhi: 4, alerts: ["Heat (warning)"], tomorrow: 37 },
+    smoke: { temp: 24, feels: 24, aqhi: 9, alerts: ["Air quality (warning)"], aqhiNext: 10 },
   };
   const deg = (n) => `${Math.round(n)}`.replace("-", "\u2212") + "\u00B0";
   async function loadNow() {
     const json = (url) => fetch(url, { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).catch(() => null);
     let now = SIM[params.get("sim")];
     if (!now) {
-      const [w, q, al] = await Promise.all([
-        json(`https://api.open-meteo.com/v1/forecast?latitude=${HERE.lat}&longitude=${HERE.lng}&current=temperature_2m,apparent_temperature`),
+      const [w, q, al, qf] = await Promise.all([
+        json(`https://api.open-meteo.com/v1/forecast?latitude=${HERE.lat}&longitude=${HERE.lng}&current=temperature_2m,apparent_temperature&daily=apparent_temperature_min,apparent_temperature_max&forecast_days=2&timezone=America%2FEdmonton`),
         json("https://api.weather.gc.ca/collections/aqhi-observations-realtime/items?f=json&location_id=IACIQ&latest=true&limit=1"),
         json("https://api.weather.gc.ca/collections/weather-alerts/items?f=json&bbox=-113.40,53.35,-112.84,53.90&limit=50"),
+        json("https://api.weather.gc.ca/collections/aqhi-forecasts-realtime/items?f=json&location_id=IACIQ&limit=80&sortby=-forecast_datetime"),
       ]);
+      const soon = (qf?.features || []).map((f) => f.properties).filter((x) => { const h = (new Date(x.forecast_datetime) - Date.now()) / 3600000; return h > 0 && h <= 24; });
       const live = (f) => f.properties.status_en !== "ended" && new Date(f.properties.expiration_datetime) > new Date() && f.geometry && Finder.inside(HERE, f.geometry);
       now = {
         temp: w?.current?.temperature_2m, feels: w?.current?.apparent_temperature,
         aqhi: q?.features?.[0]?.properties?.aqhi,
         alerts: [...new Set((al?.features || []).filter(live).map((f) => f.properties.alert_short_name_en))],
+        tonight: w?.daily?.apparent_temperature_min?.[1],  // the coming night's low, as it will feel
+        tomorrow: w?.daily?.apparent_temperature_max?.[1], // tomorrow's high, as it will feel
+        aqhiNext: soon.length ? Math.max(...soon.map((x) => x.aqhi)) : undefined, // worst air quality forecast for the next 24 hours
       };
     }
     const bits = [];
@@ -752,6 +759,10 @@
     for (const a of now.alerts || []) bits.push(`<a class="warn" href="https://weather.gc.ca/warnings/index_e.html?prov=ab" target="_blank" rel="noopener">${esc(a)}</a>`);
     if (now.temp != null) bits.push(`<span>${deg(now.temp)}C` + (Math.abs(now.temp - now.feels) >= 2 ? `, feels ${deg(now.feels)}` : "") + `</span>`);
     if (now.aqhi != null) bits.push(`<span>Air quality ${Math.round(now.aqhi)}, ${Finder.aqhiRisk(now.aqhi)}</span>`);
+    // What is coming, shown only when it matters: a hard night, a hot day, or air getting worse.
+    if (now.tonight <= -10) bits.push(`<span>Tonight feels ${deg(now.tonight)}</span>`);
+    if (now.tomorrow >= 27) bits.push(`<span>Tomorrow feels ${deg(now.tomorrow)}</span>`);
+    if (Math.round(now.aqhiNext) >= 4 && Math.round(now.aqhiNext) > Math.round(now.aqhi)) bits.push(`<span>Air quality rising to ${Math.round(now.aqhiNext)}</span>`);
     $("nowstrip").innerHTML = bits.join("");
     const want = Finder.suggestNeed(now);
     if (!picked && want) need = want; // open on what the day calls for, unless the person already chose
@@ -770,7 +781,7 @@
     `<table><thead><tr><th>Place</th><th>Usual hours</th><th>Phone</th></tr></thead><tbody>` +
     PLACES.filter((p) => p.kind === "day").map((p) => `<tr><td><strong>${esc(p.name)}</strong><br>${esc(where(p))}</td><td>${Finder.weekLines(p).map(esc).join("<br>") || "Call first"}</td><td>${esc(p.phone || "")}</td></tr>`).join("") +
     `</tbody></table>` +
-    `<p><strong>Overnight:</strong> the nearest shelters are in Edmonton. The last county bus leaves at ${Finder.fmtTime(Finder.lastBus(Finder.momentNow()).time)} Call 211 at any hour for help finding a place.</p>` +
+    `<p><strong>Overnight:</strong> the nearest shelters are in Edmonton. The last county bus leaves at ${Finder.fmtTime(Finder.LAST_BUS[1])} Monday to Saturday, ${Finder.fmtTime(Finder.LAST_BUS[0])} Sunday. Call 211 at any hour for help finding a place.</p>` +
     `<p><strong>Emergency: 911.</strong> Family and Community Services: 780-464-4044, weekdays.</p>` +
     `<p class="fine">Student prototype, not an official Strathcona County publication. Hours checked ${dateLabel(CHECKED)} ${CHECKED.slice(0, 4)}. Holiday hours differ.</p>`;
   $("print").addEventListener("click", () => window.print());

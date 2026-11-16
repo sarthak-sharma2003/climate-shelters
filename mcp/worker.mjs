@@ -94,7 +94,7 @@ function overnightShelters({ who = "all" } = {}) {
   const list = PLACES.filter((p) => p.kind === "overnight" && F.shelterMatches(p, who));
   const bus = F.lastBus(F.momentNow());
   const out = ["There is no overnight shelter in Strathcona County on the county's list. These are in Edmonton, on county bus routes.",
-    bus.gone ? end(`The last county bus to Edmonton left at ${F.fmtTime(bus.time)}`) : `Last county bus to Edmonton today: ${F.fmtTime(bus.time)} (Sunday and holiday buses may stop earlier).`];
+    bus.gone ? end(`The last county bus to Edmonton left at ${F.fmtTime(bus.time)}`) : `Last county bus to Edmonton today: ${F.fmtTime(bus.time)} (11:15 p.m. Monday to Saturday, 7:15 p.m. Sunday; holiday service differs).`];
   for (const p of list) out.push(`- ${p.name}.${p.only ? " " + { men: "Men only", women: "Women only", youth: "Youth" }[p.only] + "." : ""}${p.pets ? " Pets allowed." : ""}${tail(p)}`);
   out.push("Call the shelter first to confirm there is space.", CARE);
   return say(out.join("\n"));

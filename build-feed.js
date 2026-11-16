@@ -37,7 +37,7 @@ function feed() {
     overnight_shelters: PLACES.filter((p) => p.kind === "overnight").map((p) => ({
       ...base(p), ...(p.only ? { only_for: p.only } : {}), pets_allowed: !!p.pets,
     })),
-    overnight_note: "The county's cold-weather card lists no overnight shelter in Strathcona County. These are in Edmonton, on county bus routes. Last bus to Edmonton: 11:15 p.m. (Sunday and holiday service may end earlier).",
+    overnight_note: "The county's cold-weather card lists no overnight shelter in Strathcona County. These are in Edmonton, on county bus routes. Last county bus to Edmonton: 11:15 p.m. Monday to Saturday, 7:15 p.m. Sunday. Holiday service differs.",
     phone_lines: [
       { number: "911", for: "Emergency" },
       { number: "211", for: "Help finding services, 24 hours" },
