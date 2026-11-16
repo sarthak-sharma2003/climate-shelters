@@ -1,0 +1,4 @@
+# Cloudflare Workers settings for the MCP server. Publish from this folder with: npx wrangler deploy
+name = "climate-shelters-mcp"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"

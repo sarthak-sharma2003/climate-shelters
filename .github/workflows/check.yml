@@ -19,6 +19,7 @@ jobs:
         with:
           node-version: 22
       - run: node finder.test.js
+      - run: node mcp/test.mjs
 
   source-pages:
     if: github.event_name != 'push'

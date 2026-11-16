@@ -132,6 +132,9 @@ assert.equal(F.compass(from("Sherwood Park"), byId("moyer")), "north-east");
 assert.equal(F.compass(from("Sherwood Park"), byId("olympiette")), "south-east");
 assert.equal(F.compass(byId("ardrossan"), from("Sherwood Park")), "west");
 
+// The open data feed is built from this same data. If places.js changed and the feed was not rebuilt, fail.
+assert.deepEqual(JSON.parse(require("node:fs").readFileSync(__dirname + "/shelters.json", "utf8")), require("./build-feed.js").feed(), "run: node build-feed.js");
+
 // Data sanity: every day place has a source, and every hours row is well formed.
 for (const p of PLACES) {
   assert.ok(p.source && p.source.label, p.id);

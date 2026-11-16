@@ -1,0 +1,666 @@
+{
+  "title": "Climate shelters in Strathcona County, Alberta",
+  "about": "Public buildings people can go into to get out of cold, heat, wildfire smoke or a power outage, and overnight shelters. A student prototype, not an official Strathcona County source.",
+  "how_to_use": [
+    "Alberta time is UTC-06:00 all year (no clock changes since 2026).",
+    "A day shelter is open when the current Alberta time falls inside its hours for that day. Check dated_exceptions first.",
+    "On a date in holidays_with_unknown_hours that has no dated exception, do not say a place is open. Say call first.",
+    "A place with hours_published false has no confirmed hours. Say call first and give the phone number.",
+    "confirmed_for lists what the county has confirmed a place as a shelter from. Do not claim more than that.",
+    "Always tell the person to call before going. In an emergency the number is 911. For help finding services it is 211."
+  ],
+  "web_page": "https://sarthak-sharma2003.github.io/climate-shelters/",
+  "hours_last_checked": "2026-11-15",
+  "holidays_with_unknown_hours": [
+    "2026-12-24",
+    "2026-12-25",
+    "2026-12-26",
+    "2026-12-31",
+    "2027-01-01",
+    "2027-02-15",
+    "2027-03-26"
+  ],
+  "day_shelters": [
+    {
+      "name": "Community Centre",
+      "address": "401 Festival Lane, Sherwood Park",
+      "area": "Sherwood Park",
+      "phone": "780-410-8505",
+      "latitude": 53.52658,
+      "longitude": -113.29772,
+      "note": "Use the main north doors.",
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": true,
+      "usual_hours": [
+        "Mon to Fri: 7:30 a.m. to 9 p.m.",
+        "Sat: 8 a.m. to 6 p.m.",
+        "Sun: 10 a.m. to 6 p.m."
+      ],
+      "hours_by_day": {
+        "sunday": {
+          "opens": "10:00",
+          "closes": "18:00"
+        },
+        "monday": {
+          "opens": "07:30",
+          "closes": "21:00"
+        },
+        "tuesday": {
+          "opens": "07:30",
+          "closes": "21:00"
+        },
+        "wednesday": {
+          "opens": "07:30",
+          "closes": "21:00"
+        },
+        "thursday": {
+          "opens": "07:30",
+          "closes": "21:00"
+        },
+        "friday": {
+          "opens": "07:30",
+          "closes": "21:00"
+        },
+        "saturday": {
+          "opens": "08:00",
+          "closes": "18:00"
+        }
+      },
+      "source": "https://www.strathcona.ca/community-families/community-facilities/community-centre-county-hall/"
+    },
+    {
+      "name": "Strathcona County Library",
+      "address": "401 Festival Lane, Sherwood Park",
+      "area": "Sherwood Park",
+      "phone": "780-410-8600",
+      "latitude": 53.52635,
+      "longitude": -113.29809,
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": true,
+      "usual_hours": [
+        "Mon to Thu: 9:30 a.m. to 9 p.m.",
+        "Fri: 9:30 a.m. to 8 p.m.",
+        "Sat: 9:30 a.m. to 5 p.m.",
+        "Sun: 11 a.m. to 5 p.m."
+      ],
+      "hours_by_day": {
+        "sunday": {
+          "opens": "11:00",
+          "closes": "17:00"
+        },
+        "monday": {
+          "opens": "09:30",
+          "closes": "21:00"
+        },
+        "tuesday": {
+          "opens": "09:30",
+          "closes": "21:00"
+        },
+        "wednesday": {
+          "opens": "09:30",
+          "closes": "21:00"
+        },
+        "thursday": {
+          "opens": "09:30",
+          "closes": "21:00"
+        },
+        "friday": {
+          "opens": "09:30",
+          "closes": "20:00"
+        },
+        "saturday": {
+          "opens": "09:30",
+          "closes": "17:00"
+        }
+      },
+      "dated_exceptions": {
+        "2026-12-24": "closed",
+        "2026-12-25": "closed",
+        "2026-12-26": "closed",
+        "2026-12-27": "closed",
+        "2026-12-31": {
+          "opens": "09:30",
+          "closes": "17:00"
+        },
+        "2027-01-01": "closed"
+      },
+      "source": "https://sclibrary.ca/locations/central/"
+    },
+    {
+      "name": "Bethel Transit Terminal",
+      "address": "650 Bethel Drive, Sherwood Park",
+      "area": "Sherwood Park",
+      "latitude": 53.54285,
+      "longitude": -113.30646,
+      "note": "Heated, staffed building.",
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": true,
+      "usual_hours": [
+        "Mon to Fri: 5:30 a.m. to 10:45 p.m.",
+        "Sat: 7 a.m. to 10:45 p.m.",
+        "Sun: 8 a.m. to 6:45 p.m."
+      ],
+      "hours_by_day": {
+        "sunday": {
+          "opens": "08:00",
+          "closes": "18:45"
+        },
+        "monday": {
+          "opens": "05:30",
+          "closes": "22:45"
+        },
+        "tuesday": {
+          "opens": "05:30",
+          "closes": "22:45"
+        },
+        "wednesday": {
+          "opens": "05:30",
+          "closes": "22:45"
+        },
+        "thursday": {
+          "opens": "05:30",
+          "closes": "22:45"
+        },
+        "friday": {
+          "opens": "05:30",
+          "closes": "22:45"
+        },
+        "saturday": {
+          "opens": "07:00",
+          "closes": "22:45"
+        }
+      },
+      "source": "https://www.strathcona.ca/transportation-roads/transportation/bus-terminals/"
+    },
+    {
+      "name": "Ordze Transit Centre",
+      "address": "970 Ordze Road, Sherwood Park",
+      "area": "Sherwood Park",
+      "latitude": 53.51334,
+      "longitude": -113.33092,
+      "note": "Heated indoor waiting area. No staff on site.",
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": true,
+      "usual_hours": [
+        "Mon to Fri: 5:30 a.m. to 7:45 p.m.",
+        "Sat and Sun: closed"
+      ],
+      "hours_by_day": {
+        "sunday": "closed",
+        "monday": {
+          "opens": "05:30",
+          "closes": "19:45"
+        },
+        "tuesday": {
+          "opens": "05:30",
+          "closes": "19:45"
+        },
+        "wednesday": {
+          "opens": "05:30",
+          "closes": "19:45"
+        },
+        "thursday": {
+          "opens": "05:30",
+          "closes": "19:45"
+        },
+        "friday": {
+          "opens": "05:30",
+          "closes": "19:45"
+        },
+        "saturday": "closed"
+      },
+      "source": "https://www.strathcona.ca/transportation-roads/transportation/bus-terminals/"
+    },
+    {
+      "name": "Millennium Place",
+      "address": "2000 Premier Way, Sherwood Park",
+      "area": "Sherwood Park",
+      "phone": "780-416-3300",
+      "latitude": 53.55908,
+      "longitude": -113.31364,
+      "note": "Lobby and common areas.",
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": true,
+      "usual_hours": [
+        "Mon to Fri: 5 a.m. to 10:30 p.m.",
+        "Sat and Sun: 6 a.m. to 9 p.m."
+      ],
+      "hours_by_day": {
+        "sunday": {
+          "opens": "06:00",
+          "closes": "21:00"
+        },
+        "monday": {
+          "opens": "05:00",
+          "closes": "22:30"
+        },
+        "tuesday": {
+          "opens": "05:00",
+          "closes": "22:30"
+        },
+        "wednesday": {
+          "opens": "05:00",
+          "closes": "22:30"
+        },
+        "thursday": {
+          "opens": "05:00",
+          "closes": "22:30"
+        },
+        "friday": {
+          "opens": "05:00",
+          "closes": "22:30"
+        },
+        "saturday": {
+          "opens": "06:00",
+          "closes": "21:00"
+        }
+      },
+      "dated_exceptions": {
+        "2026-12-24": {
+          "opens": "10:00",
+          "closes": "17:00"
+        },
+        "2026-12-25": "closed",
+        "2026-12-26": {
+          "opens": "10:00",
+          "closes": "17:00"
+        },
+        "2026-12-31": {
+          "opens": "10:00",
+          "closes": "17:00"
+        },
+        "2027-01-01": {
+          "opens": "10:00",
+          "closes": "17:00"
+        }
+      },
+      "source": "https://www.strathcona.ca/recreation-events/recreation-centres/millennium-place/"
+    },
+    {
+      "name": "Glen Allan Recreation Complex",
+      "address": "199 Georgian Way, Sherwood Park",
+      "area": "Sherwood Park",
+      "phone": "780-467-4404",
+      "latitude": 53.53055,
+      "longitude": -113.28238,
+      "note": "Lobby and common areas.",
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": true,
+      "usual_hours": [
+        "Mon to Fri: 5:30 a.m. to 10 p.m.",
+        "Sat and Sun: 6 a.m. to 9 p.m."
+      ],
+      "hours_by_day": {
+        "sunday": {
+          "opens": "06:00",
+          "closes": "21:00"
+        },
+        "monday": {
+          "opens": "05:30",
+          "closes": "22:00"
+        },
+        "tuesday": {
+          "opens": "05:30",
+          "closes": "22:00"
+        },
+        "wednesday": {
+          "opens": "05:30",
+          "closes": "22:00"
+        },
+        "thursday": {
+          "opens": "05:30",
+          "closes": "22:00"
+        },
+        "friday": {
+          "opens": "05:30",
+          "closes": "22:00"
+        },
+        "saturday": {
+          "opens": "06:00",
+          "closes": "21:00"
+        }
+      },
+      "dated_exceptions": {
+        "2026-12-24": "closed",
+        "2026-12-25": "closed",
+        "2026-12-26": "closed",
+        "2026-12-31": {
+          "opens": "05:30",
+          "closes": "17:00"
+        },
+        "2027-01-01": "closed"
+      },
+      "source": "https://www.strathcona.ca/recreation-events/recreation-centres/glen-allan-recreation-complex/"
+    },
+    {
+      "name": "Ardrossan Recreation Complex",
+      "address": "80 1 Avenue, Ardrossan",
+      "area": "Ardrossan",
+      "phone": "780-400-2084",
+      "latitude": 53.55321,
+      "longitude": -113.14572,
+      "note": "Lobby and common areas.",
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": true,
+      "usual_hours": [
+        "Mon to Fri: 5:30 a.m. to 10 p.m.",
+        "Sat and Sun: 6 a.m. to 9 p.m."
+      ],
+      "hours_by_day": {
+        "sunday": {
+          "opens": "06:00",
+          "closes": "21:00"
+        },
+        "monday": {
+          "opens": "05:30",
+          "closes": "22:00"
+        },
+        "tuesday": {
+          "opens": "05:30",
+          "closes": "22:00"
+        },
+        "wednesday": {
+          "opens": "05:30",
+          "closes": "22:00"
+        },
+        "thursday": {
+          "opens": "05:30",
+          "closes": "22:00"
+        },
+        "friday": {
+          "opens": "05:30",
+          "closes": "22:00"
+        },
+        "saturday": {
+          "opens": "06:00",
+          "closes": "21:00"
+        }
+      },
+      "dated_exceptions": {
+        "2026-12-24": "closed",
+        "2026-12-25": "closed",
+        "2026-12-26": {
+          "opens": "09:00",
+          "closes": "21:00"
+        },
+        "2026-12-31": {
+          "opens": "10:00",
+          "closes": "17:00"
+        },
+        "2027-01-01": "closed"
+      },
+      "source": "https://www.strathcona.ca/recreation-events/recreation-centres/ardrossan-recreation-complex/"
+    },
+    {
+      "name": "Emerald Hills Leisure Centre",
+      "address": "3555 Emerald Drive, Sherwood Park",
+      "area": "Sherwood Park",
+      "phone": "780-464-2112",
+      "latitude": 53.56645,
+      "longitude": -113.28892,
+      "note": "Hours can change with bookings. Call first.",
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": true,
+      "usual_hours": [
+        "Mon to Fri: 5:30 a.m. to 9 p.m.",
+        "Sat: 7 a.m. to 7 p.m.",
+        "Sun: 7 a.m. to 4:30 p.m."
+      ],
+      "hours_by_day": {
+        "sunday": {
+          "opens": "07:00",
+          "closes": "16:30"
+        },
+        "monday": {
+          "opens": "05:30",
+          "closes": "21:00"
+        },
+        "tuesday": {
+          "opens": "05:30",
+          "closes": "21:00"
+        },
+        "wednesday": {
+          "opens": "05:30",
+          "closes": "21:00"
+        },
+        "thursday": {
+          "opens": "05:30",
+          "closes": "21:00"
+        },
+        "friday": {
+          "opens": "05:30",
+          "closes": "21:00"
+        },
+        "saturday": {
+          "opens": "07:00",
+          "closes": "19:00"
+        }
+      },
+      "dated_exceptions": {
+        "2026-12-24": "closed",
+        "2026-12-25": "closed",
+        "2026-12-26": "closed",
+        "2027-01-01": "closed"
+      },
+      "source": "https://www.strathcona.ca/recreation-events/recreation-centres/emerald-hills-leisure-centre/"
+    },
+    {
+      "name": "Kinsmen Leisure Centre",
+      "address": "2001 Oak Street, Sherwood Park",
+      "area": "Sherwood Park",
+      "phone": "780-400-3866",
+      "latitude": 53.52583,
+      "longitude": -113.30818,
+      "note": "Hours can change with bookings. Call first.",
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": true,
+      "usual_hours": [
+        "Mon to Thu: 6:30 a.m. to 9 p.m.",
+        "Fri: 6:30 a.m. to 7 p.m.",
+        "Sat: 7 a.m. to 7 p.m.",
+        "Sun: 7 a.m. to 6 p.m."
+      ],
+      "hours_by_day": {
+        "sunday": {
+          "opens": "07:00",
+          "closes": "18:00"
+        },
+        "monday": {
+          "opens": "06:30",
+          "closes": "21:00"
+        },
+        "tuesday": {
+          "opens": "06:30",
+          "closes": "21:00"
+        },
+        "wednesday": {
+          "opens": "06:30",
+          "closes": "21:00"
+        },
+        "thursday": {
+          "opens": "06:30",
+          "closes": "21:00"
+        },
+        "friday": {
+          "opens": "06:30",
+          "closes": "19:00"
+        },
+        "saturday": {
+          "opens": "07:00",
+          "closes": "19:00"
+        }
+      },
+      "source": "https://www.strathcona.ca/recreation-events/recreation-centres/kinsmen-leisure-centre/"
+    },
+    {
+      "name": "Sherwood Park Arena and Sports Centre",
+      "address": "2015 Oak Street, Sherwood Park",
+      "area": "Sherwood Park",
+      "phone": "780-893-6680",
+      "latitude": 53.52695,
+      "longitude": -113.30642,
+      "note": "The county lists 6 a.m. to midnight for bookings, September to mid-May.",
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": false,
+      "usual_hours": [],
+      "caution": "Public lobby access is not confirmed",
+      "source": "https://www.strathcona.ca/recreation-events/recreation-centres/sherwood-park-arena-and-sports-centre/"
+    },
+    {
+      "name": "Moyer Recreation Centre",
+      "address": "4 - 54569 Range Road 215",
+      "area": "Josephburg",
+      "phone": "780-998-7022",
+      "latitude": 53.713,
+      "longitude": -113.07014,
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": false,
+      "usual_hours": [],
+      "source": "https://www.strathcona.ca/recreation-events/recreation-centres/moyer-recreation-centre/"
+    },
+    {
+      "name": "Strathcona Olympiette Centre",
+      "address": "25 - 52029 Range Road 224",
+      "area": "Fultonvale",
+      "phone": "780-400-3805",
+      "latitude": 53.45993,
+      "longitude": -113.19226,
+      "confirmed_for": [
+        "cold weather"
+      ],
+      "hours_published": false,
+      "usual_hours": [],
+      "source": "https://www.strathcona.ca/recreation-events/recreation-centres/strathcona-olympiette-centre/"
+    }
+  ],
+  "overnight_shelters": [
+    {
+      "name": "Hope Mission, Herb Jamison Centre",
+      "address": "10014 105A Avenue NW, Edmonton",
+      "phone": "780-422-2018",
+      "latitude": 53.54879,
+      "longitude": -113.49245,
+      "only_for": "men",
+      "pets_allowed": false
+    },
+    {
+      "name": "Hope Mission, Karis Centre",
+      "address": "10302 107 Street NW, Edmonton",
+      "phone": "780-422-2018",
+      "latitude": 53.54479,
+      "longitude": -113.50527,
+      "only_for": "women",
+      "pets_allowed": false
+    },
+    {
+      "name": "Hope Mission, Bruce Reith Centre",
+      "address": "9908 106 Avenue NW, Edmonton",
+      "phone": "780-422-2018",
+      "latitude": 53.55001,
+      "longitude": -113.49129,
+      "pets_allowed": false
+    },
+    {
+      "name": "CarePoint Wellness Centre",
+      "address": "14830 124 Avenue NW, Edmonton",
+      "phone": "825-394-3537",
+      "latitude": 53.5786,
+      "longitude": -113.577,
+      "pets_allowed": true
+    },
+    {
+      "name": "Women's Emergency Accommodation Centre",
+      "address": "9611 101A Avenue, Edmonton",
+      "phone": "780-423-5302",
+      "latitude": 53.54355,
+      "longitude": -113.48245,
+      "note": "Screening and booking required.",
+      "only_for": "women",
+      "pets_allowed": false
+    },
+    {
+      "name": "YESS, Nexus 24/7 shelter",
+      "address": "9310 82 Avenue, Edmonton",
+      "phone": "780-468-7070",
+      "latitude": 53.51838,
+      "longitude": -113.47057,
+      "note": "Phone extension 231.",
+      "only_for": "youth",
+      "pets_allowed": false
+    },
+    {
+      "name": "Mustard Seed Strathcona Shelter",
+      "address": "10050 81 Avenue NW, Edmonton",
+      "phone": "780-619-9885",
+      "latitude": 53.51712,
+      "longitude": -113.49073,
+      "pets_allowed": false
+    },
+    {
+      "name": "Central Seed",
+      "address": "9526 106 Avenue NW, Edmonton",
+      "phone": "780-938-6878",
+      "latitude": 53.55115,
+      "longitude": -113.48355,
+      "pets_allowed": false
+    },
+    {
+      "name": "Central Seed, women-only space",
+      "address": "9526 106 Avenue NW, Edmonton",
+      "phone": "780-720-7925",
+      "latitude": 53.55138,
+      "longitude": -113.48318,
+      "only_for": "women",
+      "pets_allowed": false
+    },
+    {
+      "name": "Maskokamik Lodge",
+      "address": "11845 Wayne Gretzky Drive NW, Edmonton",
+      "phone": "587-525-8222",
+      "latitude": 53.57156,
+      "longitude": -113.45328,
+      "pets_allowed": false
+    }
+  ],
+  "overnight_note": "The county's cold-weather card lists no overnight shelter in Strathcona County. These are in Edmonton, on county bus routes. Last bus to Edmonton: 11:15 p.m. (Sunday and holiday service may end earlier).",
+  "phone_lines": [
+    {
+      "number": "911",
+      "for": "Emergency"
+    },
+    {
+      "number": "211",
+      "for": "Help finding services, 24 hours"
+    },
+    {
+      "number": "780-464-4044",
+      "for": "Strathcona County Family and Community Services, weekdays"
+    },
+    {
+      "number": "780-467-7741",
+      "for": "RCMP non-emergency, 24 hours"
+    }
+  ]
+}

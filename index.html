@@ -184,6 +184,11 @@
 
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
 
+  dialog { border: 0; border-radius: 4px; padding: 1.25rem; width: min(32rem, calc(100vw - 2rem)); color: var(--ink); }
+  dialog::backdrop { background: rgba(0, 0, 0, .5); }
+  dialog p { margin-top: .7rem; }
+  .copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; align-items: start; }
+  .copy code { background: var(--band); padding: .5rem .6rem; border-radius: 4px; font: .875rem/1.45 ui-monospace, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
   .offline { margin: 0 calc(var(--pad) * -1); padding: .5rem var(--pad); background: #FFF4E5; color: #5C3600; font-size: .875rem; }
 
   /* ---- Print: not the screen, but a one-page card for a notice board, built from the same data ---- */
@@ -303,6 +308,11 @@
       </ul>
     </section>
 
+    <section class="grp" aria-labelledby="h-ai">
+      <div class="gh"><h2 id="h-ai">Use an AI assistant?</h2></div>
+      <p>Let it answer from this list. <button type="button" class="btn" id="ai-open">Connect your AI</button></p>
+    </section>
+
     <footer>
       <p>Student prototype for a University of Alberta course. Not run or approved by Strathcona County.</p>
       <p><button type="button" class="linkbtn" id="print">Print a one-page card</button></p>
@@ -315,13 +325,25 @@
   </main>
 </div>
 
+<dialog id="ai" aria-labelledby="ai-h">
+  <h2 id="ai-h">Connect your AI</h2>
+  <div id="ai-mcp" hidden>
+    <p><strong>Connect once.</strong> In Claude or ChatGPT, open the connector settings, add a custom connector, and paste this address:</p>
+    <p class="copy"><code id="ai-url"></code><button type="button" class="btn" data-copy="ai-url">Copy</button></p>
+  </div>
+  <p><strong>No setup.</strong> Paste this into any assistant that can browse the web:</p>
+  <p class="copy"><code id="ai-ask"></code><button type="button" class="btn" data-copy="ai-ask">Copy</button></p>
+  <p class="hint">Then ask in your own words, like "I'm cold in Ardrossan." It answers from this list. Always call before you go.</p>
+  <form method="dialog"><p><button class="btn ghost">Close</button></p></form>
+</dialog>
+
 <section class="card" id="card" aria-hidden="true"></section>
 
 <!-- BUMP ?v= ON EVERY CHANGE to these three files. Without it a browser can pair this page with an older saved
      copy of a script, and the lists come up empty (this happened on 2026-11-15). -->
-<script src="places.js?v=14"></script>
-<script src="boundary.js?v=14"></script>
-<script src="finder.js?v=14"></script>
+<script src="places.js?v=15"></script>
+<script src="boundary.js?v=15"></script>
+<script src="finder.js?v=15"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -752,6 +774,18 @@
     `<p><strong>Emergency: 911.</strong> Family and Community Services: 780-464-4044, weekdays.</p>` +
     `<p class="fine">Student prototype, not an official Strathcona County publication. Hours checked ${dateLabel(CHECKED)} ${CHECKED.slice(0, 4)}. Holiday hours differ.</p>`;
   $("print").addEventListener("click", () => window.print());
+
+  // ---- Connect your AI. Two ways in: the open data feed (shelters.json) works with any assistant that can browse,
+  // and the MCP address (mcp/worker.mjs) gives exact answers from the same logic as this page. ----
+  const MCP_URL = ""; // the published MCP address. Empty until the server is deployed; then that part of the dialog shows.
+  $("ai-ask").textContent = `Use https://${SITE}/shelters.json to find me a climate shelter in Strathcona County. I'm cold in Ardrossan.`;
+  if (MCP_URL) { $("ai-url").textContent = MCP_URL; $("ai-mcp").hidden = false; }
+  $("ai-open").addEventListener("click", () => $("ai").showModal());
+  $("ai").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-copy]");
+    if (!b) return;
+    try { await navigator.clipboard.writeText($(b.dataset.copy).textContent); b.textContent = "Copied"; } catch (err) { b.textContent = "Select and copy"; }
+  });
 
   // ---- Works with no connection: sw.js keeps a copy of this page and its data from the last visit. ----
   if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js");
