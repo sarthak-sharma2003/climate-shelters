@@ -336,8 +336,6 @@
     <p><strong>Connect once.</strong> In Claude or ChatGPT, open the connector settings, add a custom connector, and paste this address:</p>
     <p class="copy"><code id="ai-url"></code><button type="button" class="btn" data-copy="ai-url">Copy</button></p>
   </div>
-  <p><strong>No setup.</strong> Paste this into any assistant that can browse the web:</p>
-  <p class="copy"><code id="ai-ask"></code><button type="button" class="btn" data-copy="ai-ask">Copy</button></p>
   <p class="hint">Then ask in your own words, like "I'm cold in Ardrossan." It answers from this list. Always call before you go.</p>
   <form method="dialog"><p><button class="btn ghost">Close</button></p></form>
 </dialog>
@@ -835,10 +833,9 @@
     `<p class="fine">Student prototype, not an official Strathcona County publication. Hours checked ${dateLabel(CHECKED)} ${CHECKED.slice(0, 4)}. Holiday hours differ.</p>`;
   $("print").addEventListener("click", () => window.print());
 
-  // ---- Connect your AI. Two ways in: the open data feed (shelters.json) works with any assistant that can browse,
-  // and the MCP address (mcp/worker.mjs) gives exact answers from the same logic as this page. ----
+  // ---- Connect your AI: the MCP address (mcp/worker.mjs) lets an assistant answer from the same data and logic as this page. ----
+  // The open data feed (shelters.json) is still published, but the box no longer offers it as a paste-in option.
   const MCP_URL = "https://climate-shelters-mcp.strath-shelter.workers.dev/mcp"; // the published MCP server (mcp/worker.mjs, on Cloudflare Workers)
-  $("ai-ask").textContent = `Use https://${SITE}/shelters.json to find me a climate shelter in Strathcona County. I'm cold in Ardrossan.`;
   if (MCP_URL) { $("ai-url").textContent = MCP_URL; $("ai-mcp").hidden = false; }
   $("ai-open").addEventListener("click", () => $("ai").showModal());
   $("ai").addEventListener("click", async (e) => {
