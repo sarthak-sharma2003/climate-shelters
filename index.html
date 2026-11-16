@@ -837,7 +837,7 @@
 
   // ---- Connect your AI. Two ways in: the open data feed (shelters.json) works with any assistant that can browse,
   // and the MCP address (mcp/worker.mjs) gives exact answers from the same logic as this page. ----
-  const MCP_URL = ""; // the published MCP address. Empty until the server is deployed; then that part of the dialog shows.
+  const MCP_URL = "https://climate-shelters-mcp.strath-shelter.workers.dev/mcp"; // the published MCP server (mcp/worker.mjs, on Cloudflare Workers)
   $("ai-ask").textContent = `Use https://${SITE}/shelters.json to find me a climate shelter in Strathcona County. I'm cold in Ardrossan.`;
   if (MCP_URL) { $("ai-url").textContent = MCP_URL; $("ai-mcp").hidden = false; }
   $("ai-open").addEventListener("click", () => $("ai").showModal());

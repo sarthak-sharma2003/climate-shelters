@@ -1,0 +1,3 @@
+# Cloudflare's deploy tool keeps local state here. Not part of the project.
+.wrangler/
+node_modules/
