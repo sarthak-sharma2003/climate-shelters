@@ -107,13 +107,16 @@ assert.equal(F.inside({ lat: 53.0167, lng: -112.8236 }, COUNTY), false);
 // What a place is good for: every warm place lists at least one need, and only needs the page knows.
 for (const p of PLACES.filter((x) => x.kind === "day")) assert.ok(p.good.length && p.good.every((g) => g in F.NEEDS), p.id);
 
-// The pool for a need: cold is confirmed for all 12. Nothing is confirmed for heat, so every day place comes back
-// flagged as not confirmed. Once one place is confirmed for heat, only that place is in the pool.
+// The pool for a need: cold is confirmed for all 12, heat for the 11 on the county's heat-wave page (not Ordze).
+// Nothing is confirmed for smoke, so every day place comes back flagged as not confirmed.
+// Once one place is confirmed for smoke, only that place is in the pool.
 assert.deepEqual([F.pool(PLACES, "cold").list.length, F.pool(PLACES, "cold").confirmed], [12, true]);
-assert.deepEqual([F.pool(PLACES, "heat").list.length, F.pool(PLACES, "heat").confirmed], [12, false]);
-const withHeat = PLACES.map((p) => (p.id === "millennium" ? { ...p, good: ["cold", "heat"] } : p));
-assert.deepEqual(F.pool(withHeat, "heat").list.map((p) => p.id), ["millennium"]);
-assert.equal(F.pool(withHeat, "heat").confirmed, true);
+assert.deepEqual([F.pool(PLACES, "heat").list.length, F.pool(PLACES, "heat").confirmed], [11, true]);
+assert.ok(!F.pool(PLACES, "heat").list.some((p) => p.id === "ordze"));
+assert.deepEqual([F.pool(PLACES, "smoke").list.length, F.pool(PLACES, "smoke").confirmed], [12, false]);
+const withSmoke = PLACES.map((p) => (p.id === "millennium" ? { ...p, good: ["cold", "smoke"] } : p));
+assert.deepEqual(F.pool(withSmoke, "smoke").list.map((p) => p.id), ["millennium"]);
+assert.equal(F.pool(withSmoke, "smoke").confirmed, true);
 
 // What the page opens on: an alert wins, then smoke, then how it feels outside. A mild day suggests nothing.
 assert.equal(F.suggestNeed({ feels: -42, aqhi: 2, alerts: ["Extreme cold (warning)"] }), "cold");

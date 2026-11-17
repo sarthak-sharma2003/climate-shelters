@@ -170,6 +170,12 @@ for (const p of PLACES) if (COORDS[p.id]) [p.lat, p.lng] = COORDS[p.id]; // a ne
 // Every warm place here comes from the county's cold-weather card, so cold is the only thing confirmed so far.
 for (const p of PLACES) if (p.kind === "day" && !p.good) p.good = ["cold"];
 
+// Heat: the county's "Dealing with a heat wave" page (strathcona.ca/council-county/news/heat-wave/, checked 2026-11-16)
+// names the Community Centre, the Library, Bethel Transit Terminal and "County recreation facilities in central/lobby
+// areas" as places to cool down during business hours. Ordze is not named.
+const HEAT_PAGE = ["community-centre", "library", "bethel", "millennium", "glen-allan", "ardrossan", "emerald-hills", "kinsmen", "sp-arena", "moyer", "olympiette"];
+for (const p of PLACES) if (HEAT_PAGE.includes(p.id)) p.good = [...p.good, "heat"];
+
 // Hamlet names the address search answers without going online: Sherwood Park and the county's hamlets.
 const AREAS = [
   { name: "Sherwood Park", lat: 53.5257, lng: -113.2966 },

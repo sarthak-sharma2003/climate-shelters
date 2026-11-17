@@ -31,8 +31,10 @@ assert.ok(cold.includes("Open until 10 p.m.") && cold.includes("780-400-2084") &
 const late = await text("find_shelter", { place: "Sherwood Park", when: "2026-11-19T23:30" });
 assert.ok(late.includes("Nothing on the list is open") && late.includes("Soonest to open"), late);
 
-// Heat: nothing is confirmed, and the answer must say that.
-assert.ok((await text("find_shelter", { place: "Ardrossan", need: "heat", when })).includes("No building is confirmed as a shelter from heat yet"));
+// Heat: the county names cooling places, so heat is answered from those. Smoke is not confirmed anywhere, and must say so.
+const heat = await text("find_shelter", { place: "Ardrossan", need: "heat", when });
+assert.ok(heat.includes("1. Ardrossan Recreation Complex.") && !heat.includes("No building is confirmed"), heat);
+assert.ok((await text("find_shelter", { place: "Ardrossan", need: "smoke", when })).includes("No building is confirmed as a shelter from wildfire smoke yet"));
 
 // Overnight: the pet filter leaves one shelter.
 const pets = await text("overnight_shelters", { who: "pets" });
